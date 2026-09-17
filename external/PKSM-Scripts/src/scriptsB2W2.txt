@@ -1,0 +1,236 @@
+# Syntax: "Name of script" -i <offset> <length> <payload (integer or file path)> <repeat>
+"Clear Mystery Gift data" -i 0x1C800 1 0x0 2704
+"Set max money" -i 0x21100 4 9999999 1
+"Set max Battle Points" -i 0x21B00 2 9999 1
+"Season - Winter" -i 0x19573 1 3 1
+"Season - Spring" -i 0x19573 1 0 1
+"Season - Summer" -i 0x19573 1 1 1
+"Season - Autumn" -i 0x19573 1 2 1
+"Join Avenue - Restock All Shops" -i 0x2475C 4 0 1 -i 0x24820 4 0 1 -i 0x248E4 4 0 1 -i 0x249A8 4 0 1 -i 0x24A6C 4 0 1 -i 0x24B30 4 0 1 -i 0x24BF4 4 0 1 -i 0x24CB8 4 0 1
+"Join Avenue - Lv9 All Shops" -i 0x24759 1 8 1 -i 0x2475A 2 9999 1 -i 0x2481D 1 8 1 -i 0x2481E 2 9999 1 -i 0x248E1 1 8 1 -i 0x248E2 2 9999 1 -i 0x249A5 1 8 1 -i 0x249A6 2 9999 1 -i 0x24A69 1 8 1 -i 0x24A6A 2 9999 1 -i 0x24B2D 1 8 1 -i 0x24B2E 2 9999 1 -i 0x24BF1 1 8 1 -i 0x24BF2 2 9999 1 -i 0x24CB5 1 8 1 -i 0x24CB6 2 9999 1
+"Join Avenue - 7 Day Promotion" -i 0x24FDC 1 0 1 -i 0x24FDE 1 1 1
+"Max Entree Level" -i 0x2120C 2 100 2 -i 0x259F4 2 200 1 -i 0x259F0 2 200 1 -i 0x259F2 2 200 1
+# This one unlocks and completes the happy and strange endings for all Pokestar films except the last one, which upon completeion allows you to see the final cutscene and access the dressing room. It also grants a trainer star to your trainer card
+"Complete Pokestar Films" -i 0x25A00 0x400 "data/other/B2W2_Pokestar.bin" 1
+"Unlock Champion Tournament" -i 0x2378C 1 10 1
+"Unlock All PWT Tournaments" -i 0x2375C 58 "data/B2W2_PWT.bin" 1
+# Items
+"Give all items 99x" -d "illegal" -i 0x18400 1044 "data/BWB2W2_AllItems_illegal.bin" 1
+"Give all items 99x" -d "items" -i 0x18400 976 "data/BWB2W2_AllItems.bin" 1
+"Give all medicine 99x" -d "items" -i 0x18bd8 188 "data/BWB2W2_AllMedicine.bin" 1
+"Give all berries 99x" -d "illegal" -i 0x18c98 256 "data/BWB2W2_AllBerries_illegal.bin" 1
+"Give all berries 99x" -d "items" -i 0x18c98 248 "data/BWB2W2_AllBerries.bin" 1
+"Items slots 1-4 - Shards x999" -d "items" -i 0x18400 2 72 1 -i 0x18402 2 999 1 -i 0x18404 2 73 1 -i 0x18406 2 999 1 -i 0x18408 2 74 1 -i 0x1840a 2 999 1 -i 0x1840c 2 75 1 -i 0x1840e 2 999 1
+"Medicine slots 1-6 - stat vitamins x999" -d "items" -i 0x18BD8 2 45 1 -i 0x18BDA 2 999 1 -i 0x18BDC 2 46 1 -i 0x18BDE 2 999 1 -i 0x18BE0 2 47 1 -i 0x18BE2 2 999 1 -i 0x18BE4 2 48 1 -i 0x18BE6 2 999 1 -i 0x18BE8 2 49 1 -i 0x18BEA 2 999 1 -i 0x18BEC 2 52 1 -i 0x18BEE 2 999 1
+"Shiny Haxorus" -d "reset" -i 0x20292 1 0x20 1 -i 0x202d4 1 0xc9 1 -i 0x203e2 2 0xa3bb 1
+"All Legendaries" -d "reset" -i 0x20119 1 0x00 1 -i 0x20283 1 0x20 1 -i 0x20287 1 0x08 1 -i 0x202b1 1 0x23 1 -i 0x202c2 1 0x30 1 -i 0x202c3 1 0x08 1 -i 0x202ce 1 0x65 1 -i 0x202d0 1 0x17 1 -i 0x202d1 1 0xe0 1 -i 0x202db 1 0xa9 1
+# Dex
+"Language entries" -d "dex" -i 0x21728 1 0xff 0x1af -i 0x218d7 1 0x07 1
+"Unova seen" -d "dex" -i 0x2145c 0x47c "data/dex/B2W2_Unova_seen.bin" 1
+"Unova owned" -d "dex" -i 0x21408 0x47c "data/dex/B2W2_Unova_owned.bin" 1
+"National seen" -d "dex" -i 0x2145c 0x4d0 "data/dex/B2W2_National_seen.bin" 1
+"National owned" -d "dex" -i 0x21408 0x4d0 "data/dex/B2W2_National_owned.bin" 1
+"Complete" -d "dex" -i 0x21408 0x4d0 "data/dex/B2W2_Complete.bin" 1
+"Fill Dex - Complete" -d "illegal" -i 0x21408 0x4d0 "data/dex/B2W2_Complete_illegal.bin" 1
+# Day Care EXP
+"Set 10,000 Exp gained" -d "daycare" -i 0x20DE0 4 10000 1 -i 0x20EC4 4 10000 1
+"Set 50,000 Exp gained" -d "daycare" -i 0x20DE0 4 50000 1 -i 0x20EC4 4 50000 1
+"Set 100,000 Exp gained" -d "daycare" -i 0x20DE0 4 100000 1 -i 0x20EC4 4 100000 1
+"Set 500,000 Exp gained" -d "daycare" -i 0x20DE0 4 500000 1 -i 0x20EC4 4 500000 1
+"Set 1,000,000 Exp gained" -d "daycare" -i 0x20DE0 4 1000000 1 -i 0x20EC4 4 1000000 1
+"Set 1,640,000 Exp gained" -d "daycare" -i 0x20DE0 4 1640000 1 -i 0x20EC4 4 1640000 1
+# Battle Subway
+"Singles streak - 14" -d "subway" -i 0x21b08 2 14 1 -i 0x21b2c 2 3 1
+"Doubles streak - 14" -d "subway" -i 0x21b0a 2 14 1 -i 0x21b2e 2 3 1
+"Multi streak - 14" -d "subway" -i 0x21b0c 2 14 1 -i 0x21b30 2 3 1
+"Multi Link streak - 14" -d "subway" -i 0x21b0e 2 14 1 -i 0x21b32 2 3 1
+"Super Singles streak - 42" -d "subway" -i 0x21b12 2 42 1 -i 0x21b36 1 7 1
+"Super Doubles streak - 42" -d "subway" -i 0x21b14 2 42 1 -i 0x21b38 1 7 1
+"Super Multi streak - 42" -d "subway" -i 0x21b16 2 42 1 -i 0x21b3a 1 7 1
+"Super Multi L streak - 42" -d "subway" -i 0x21b18 2 42 1 -i 0x21b3c 1 7 1
+"Super Singles streak - 98" -d "subway" -i 0x21b12 2 98 1 -i 0x21b36 1 15 1
+"Super Doubles streak - 98" -d "subway" -i 0x21b14 2 98 1 -i 0x21b38 1 15 1
+"Super Multi streak - 98" -d "subway" -i 0x21b16 2 98 1 -i 0x21b3a 1 15 1
+"Super Multi L streak - 98" -d "subway" -i 0x21b18 2 98 1 -i 0x21b3c 1 15 1
+"Super Singles streak - 196" -d "subway" -i 0x21b12 2 196 1 -i 0x21b36 1 29 1
+"Super Doubles streak - 196" -d "subway" -i 0x21b14 2 196 1 -i 0x21b38 1 29 1
+"Super Multi streak - 196" -d "subway" -i 0x21b16 2 196 1 -i 0x21b3a 1 29 1
+"Super Multi L streak - 196" -d "subway" -i 0x21b18 2 196 1 -i 0x21b3c 1 29 1
+"Skip to Last Battle" -d "subway" -i 0x21a02 1 6 1
+"Use 1st 3 Party PKMN" -d "subway" -i 0x21a08 1 0 1  -i 0x21a09 1 1 1 -i 0x21a0a 1 2 1
+"Use Battle Box PKMN" -d "subway" -i 0x21a01 1 2 1 -i 0x21a08 1 0 1  -i 0x21a09 1 1 1 -i 0x21a0a 1 2 1 -i 0x21a0b 1 3 1 -i 0x21a0c 1 4 1 -i 0x21a0d 1 5 1
+# Hidden Grottos
+# Floccesy
+"Dunsparce - M" -d "grotto/Floccesy" -i 0x23bcc 1 1 1 -i 0x23bcd 1 96 1
+"Dunsparce - F" -d "grotto/Floccesy" -i 0x23bcc 1 1 1 -i 0x23bcd 1 0 1
+"Herdier - M" -d "grotto/Floccesy" -i 0x23bcc 1 3 1 -i 0x23bcd 1 96 1
+"Herdier - F" -d "grotto/Floccesy" -i 0x23bcc 1 3 1 -i 0x23bcd 1 0 1
+"Marill - M" -d "grotto/Floccesy" -i 0x23bcc 1 5 1 -i 0x23bcd 1 96 1
+"Marill - F" -d "grotto/Floccesy" -i 0x23bcc 1 5 1 -i 0x23bcd 1 0 1
+# Route 5
+"Minccino - M" -d "grotto/Route 5" -i 0x23bce 1 1 1 -i 0x23bcf 1 96 1
+"Minccino - F" -d "grotto/Route 5" -i 0x23bce 1 1 1 -i 0x23bcf 1 1 1
+"Liepard - M" -d "grotto/Route 5" -i 0x23bce 1 3 1 -i 0x23bcf 1 96 1
+"Liepard - F" -d "grotto/Route 5" -i 0x23bce 1 3 1 -i 0x23bcf 1 1 1
+"Foongus - M" -d "grotto/Route 5" -i 0x23bce 1 5 1 -i 0x23bcf 1 96 1
+"Foongus - F" -d "grotto/Route 5" -i 0x23bce 1 5 1 -i 0x23bcf 1 1 1
+# Lostlorn Forest
+"Pinsir - M" -d "grotto/Lostlorn Forest" -i 0x23bd0 1 1 1 -i 0x23bd1 1 96 1
+"Pinsir - F" -d "grotto/Lostlorn Forest" -i 0x23bd0 1 1 1 -i 0x23bd1 1 0 1
+"Heracross - M" -d "grotto/Lostlorn Forest" -i 0x23bd0 1 96 1 -i 0x23bd1 1 96 1
+"Heracross - F" -d "grotto/Lostlorn Forest" -i 0x23bd0 1 97 1 -i 0x23bd1 1 1 1
+"Leavanny - M" -d "grotto/Lostlorn Forest" -i 0x23bd0 1 3 1 -i 0x23bd1 1 96 1
+"Leavanny - F" -d "grotto/Lostlorn Forest" -i 0x23bd0 1 3 1 -i 0x23bd1 1 0 1
+"Combee - M" -d "grotto/Lostlorn Forest" -i 0x23bd0 1 5 1 -i 0x23bd1 1 96 1
+"Combee - F" -d "grotto/Lostlorn Forest" -i 0x23bd0 1 5 1 -i 0x23bd1 1 0 1
+# Route 6 South
+"Dunsparce - M" -d "grotto/Route 6 South" -i 0x23bd2 1 1 1 -i 0x23bd3 1 96 1
+"Dunsparce - F" -d "grotto/Route 6 South" -i 0x23bd2 1 1 1 -i 0x23bd3 1 1 1
+"Woobat - M" -d "grotto/Route 6 South" -i 0x23bd2 1 3 1 -i 0x23bd3 1 96 1
+"Woobat - F" -d "grotto/Route 6 South" -i 0x23bd2 1 3 1 -i 0x23bd3 1 1 1
+"Foongus - M" -d "grotto/Route 6 South" -i 0x23bd2 1 5 1 -i 0x23bd3 1 96 1
+"Foongus - F" -d "grotto/Route 6 South" -i 0x23bd2 1 5 1 -i 0x23bd3 1 1 1
+# Route 6 North
+"Nosepass - M" -d "grotto/Route 6 North" -i 0x23bd4 1 1 1 -i 0x23bd5 1 96 1
+"Nosepass - F" -d "grotto/Route 6 North" -i 0x23bd4 1 1 1 -i 0x23bd5 1 1 1
+"Woobat - M" -d "grotto/Route 6 North" -i 0x23bd4 1 3 1 -i 0x23bd5 1 96 1
+"Woobat - F" -d "grotto/Route 6 North" -i 0x23bd4 1 3 1 -i 0x23bd5 1 1 1
+"Foongus - M" -d "grotto/Route 6 North" -i 0x23bd4 1 5 1 -i 0x23bd5 1 96 1
+"Foongus - F" -d "grotto/Route 6 North" -i 0x23bd4 1 5 1 -i 0x23bd5 1 1 1
+# Route 7
+"Cubchoo - M" -d "grotto/Route 7" -i 0x23bd6 1 1 1 -i 0x23bd7 1 96 1
+"Cubchoo - F" -d "grotto/Route 7" -i 0x23bd6 1 1 1 -i 0x23bd7 1 1 1
+"Watchog - M" -d "grotto/Route 7" -i 0x23bd6 1 3 1 -i 0x23bd7 1 96 1
+"Watchog - F" -d "grotto/Route 7" -i 0x23bd6 1 3 1 -i 0x23bd7 1 0 1
+"Zangoose - M" -d "grotto/Route 7" -i 0x23bd6 1 5 1 -i 0x23bd7 1 96 1
+"Zangoose - F" -d "grotto/Route 7" -i 0x23bd6 1 5 1 -i 0x23bd7 1 0 1
+"Seviper - M" -d "grotto/Route 7" -i 0x23bd6 1 101 1 -i 0x23bd7 1 96 1
+"Seviper - F" -d "grotto/Route 7" -i 0x23bd6 1 101 1 -i 0x23bd7 1 0 1
+# Route 13 W
+"Skorupi - M" -d "grotto/Route 13 W" -i 0x23bd8 1 1 1 -i 0x23bd9 1 96 1
+"Skorupi - F" -d "grotto/Route 13 W" -i 0x23bd8 1 1 1 -i 0x23bd9 1 0 1
+"Tangela - M" -d "grotto/Route 13 W" -i 0x23bd8 1 3 1 -i 0x23bd9 1 96 1
+"Tangela - F" -d "grotto/Route 13 W" -i 0x23bd8 1 3 1 -i 0x23bd9 1 0 1
+"Foongus - M" -d "grotto/Route 13 W" -i 0x23bd8 1 5 1 -i 0x23bd9 1 96 1
+"Foongus - F" -d "grotto/Route 13 W" -i 0x23bd8 1 5 1 -i 0x23bd9 1 0 1
+# Route 13 NE
+"Spheal - M" -d "grotto/Route 13 NE" -i 0x23bda 1 1 1 -i 0x23bdb 1 96 1
+"Spheal - F" -d "grotto/Route 13 NE" -i 0x23bda 1 1 1 -i 0x23bdb 1 0 1
+"Drifloon - M" -d "grotto/Route 13 NE" -i 0x23bda 1 3 1 -i 0x23bdb 1 96 1
+"Drifloon - F" -d "grotto/Route 13 NE" -i 0x23bda 1 3 1 -i 0x23bdb 1 0 1
+"Foongus - M" -d "grotto/Route 13 NE" -i 0x23bda 1 5 1 -i 0x23bdb 1 96 1
+"Foongus - F" -d "grotto/Route 13 NE" -i 0x23bda 1 5 1 -i 0x23bdb 1 0 1
+# Route 9
+"Bouffalant - M" -d "grotto/Route 9" -i 0x23bdc 1 1 1 -i 0x23bdd 1 96 1
+"Bouffalant - F" -d "grotto/Route 9" -i 0x23bdc 1 1 1 -i 0x23bdd 1 0 1
+"Muk - M" -d "grotto/Route 9" -i 0x23bdc 1 3 1 -i 0x23bdd 1 96 1
+"Muk - F" -d "grotto/Route 9" -i 0x23bdc 1 3 1 -i 0x23bdd 1 0 1
+"Garbodor - M" -d "grotto/Route 9" -i 0x23bdc 1 99 1 -i 0x23bdd 1 96 1
+"Garbodor - F" -d "grotto/Route 9" -i 0x23bdc 1 99 1 -i 0x23bdd 1 0 1
+"Liepard - M" -d "grotto/Route 9" -i 0x23bdc 1 5 1 -i 0x23bdd 1 96 1
+"Liepard - F" -d "grotto/Route 9" -i 0x23bdc 1 5 1 -i 0x23bdd 1 0 1
+# Giant Chasm
+"Ditto" -d "grotto/Giant Chasm" -i 0x23bde 1 1 1 -i 0x23bdf 1 0 1
+"Metang" -d "grotto/Giant Chasm" -i 0x23bde 1 3 1 -i 0x23bdf 1 0 1
+"Sneasel - M" -d "grotto/Giant Chasm" -i 0x23bde 1 99 1 -i 0x23bdf 1 96 1
+"Sneasel - F" -d "grotto/Giant Chasm" -i 0x23bde 1 99 1 -i 0x23bdf 1 0 1
+"Clefairy - M" -d "grotto/Giant Chasm" -i 0x23bde 1 5 1 -i 0x23bdf 1 96 1
+"Clefairy - F" -d "grotto/Giant Chasm" -i 0x23bde 1 5 1 -i 0x23bdf 1 0 1
+# Route 22
+"Mienfoo - M" -d "grotto/Route 22" -i 0x23be0 1 1 1 -i 0x23be1 1 96 1
+"Mienfoo - F" -d "grotto/Route 22" -i 0x23be0 1 1 1 -i 0x23be1 1 0 1
+"Pelipper - M" -d "grotto/Route 22" -i 0x23be0 1 3 1 -i 0x23be1 1 96 1
+"Pelipper - F" -d "grotto/Route 22" -i 0x23be0 1 3 1 -i 0x23be1 1 0 1
+"Amoonguss - M" -d "grotto/Route 22" -i 0x23be0 1 5 1 -i 0x23be1 1 96 1
+"Amoonguss - F" -d "grotto/Route 22" -i 0x23be0 1 5 1 -i 0x23be1 1 0 1
+# Route 23
+"Gligar - M" -d "grotto/Route 23" -i 0x23be2 1 1 1 -i 0x23be3 1 96 1
+"Gligar - F" -d "grotto/Route 23" -i 0x23be2 1 1 1 -i 0x23be3 1 0 1
+"Golduck - M" -d "grotto/Route 23" -i 0x23be2 1 3 1 -i 0x23be3 1 96 1
+"Golduck - F" -d "grotto/Route 23" -i 0x23be2 1 3 1 -i 0x23be3 1 0 1
+"Absol - M" -d "grotto/Route 23" -i 0x23be2 1 99 1 -i 0x23be3 1 96 1
+"Absol - F" -d "grotto/Route 23" -i 0x23be2 1 99 1 -i 0x23be3 1 0 1
+"Zangoose - M" -d "grotto/Route 23" -i 0x23be2 1 5 1 -i 0x23be3 1 96 1
+"Zangoose - F" -d "grotto/Route 23" -i 0x23be2 1 5 1 -i 0x23be3 1 0 1
+"Seviper - M" -d "grotto/Route 23" -i 0x23be2 1 101 1 -i 0x23be3 1 96 1
+"Seviper - F" -d "grotto/Route 23" -i 0x23be2 1 101 1 -i 0x23be3 1 0 1
+# Abundant-Field
+"Vulpix - M" -d "grotto/Abundant Field" -i 0x23be4 1 1 1 -i 0x23be5 1 96 1
+"Vulpix - F" -d "grotto/Abundant Field" -i 0x23be4 1 1 1 -i 0x23be5 1 0 1
+"Bronzor" -d "grotto/Abundant Field" -i 0x23be4 1 3 1 -i 0x23be5 1 0 1
+"Amoonguss - M" -d "grotto/Abundant Field" -i 0x23be4 1 5 1 -i 0x23be5 1 96 1
+"Amoonguss - F" -d "grotto/Abundant Field" -i 0x23be4 1 5 1 -i 0x23be5 1 0 1
+# Abundant-Pond
+"Swablu - M" -d "grotto/Abundant Pond" -i 0x23be6 1 1 1 -i 0x23be7 1 96 1
+"Swablu - F" -d "grotto/Abundant Pond" -i 0x23be6 1 1 1 -i 0x23be7 1 0 1
+"Golduck - M" -d "grotto/Abundant Pond" -i 0x23be6 1 3 1 -i 0x23be7 1 96 1
+"Golduck - F" -d "grotto/Abundant Pond" -i 0x23be6 1 3 1 -i 0x23be7 1 0 1
+"Amoonguss - M" -d "grotto/Abundant Pond" -i 0x23be6 1 5 1 -i 0x23be7 1 96 1
+"Amoonguss - F" -d "grotto/Abundant Pond" -i 0x23be6 1 5 1 -i 0x23be7 1 0 1
+# Pinwheel Int
+"Murkrow - M" -d "grotto/Pinwheel Int" -i 0x23be8 1 1 1 -i 0x23be9 1 96 1
+"Murkrow - F" -d "grotto/Pinwheel Int" -i 0x23be8 1 1 1 -i 0x23be9 1 0 1
+"Beedrill Butterfree - M" -d "grotto/Pinwheel Int" -i 0x23be8 1 3 1 -i 0x23be9 1 96 1
+"Beedrill Butterfree - F" -d "grotto/Pinwheel Int" -i 0x23be8 1 3 1 -i 0x23be9 1 0 1
+"Amoonguss - M" -d "grotto/Pinwheel Int" -i 0x23be8 1 5 1 -i 0x23be9 1 96 1
+"Amoonguss - F" -d "grotto/Pinwheel Int" -i 0x23be8 1 5 1 -i 0x23be9 1 0 1
+"Breloom - M" -d "grotto/Pinwheel Int" -i 0x23be8 1 101 1 -i 0x23be9 1 96 1
+"Breloom - F" -d "grotto/Pinwheel Int" -i 0x23be8 1 101 1 -i 0x23be9 1 0 1
+# Pinwheel-Ext
+"Poliwhirl - M" -d "grotto/Pinwheel Ext" -i 0x23bea 1 1 1 -i 0x23beb 1 96 1
+"Poliwhirl - F" -d "grotto/Pinwheel Ext" -i 0x23bea 1 1 1 -i 0x23beb 1 0 1
+"Bagon - M" -d "grotto/Pinwheel Ext" -i 0x23bea 1 3 1 -i 0x23beb 1 96 1
+"Bagon - F" -d "grotto/Pinwheel Ext" -i 0x23bea 1 3 1 -i 0x23beb 1 0 1
+"Medicham - M" -d "grotto/Pinwheel Ext" -i 0x23bea 1 99 1 -i 0x23beb 1 96 1
+"Medicham - F" -d "grotto/Pinwheel Ext" -i 0x23bea 1 99 1 -i 0x23beb 1 0 1
+"Hariyama - M" -d "grotto/Pinwheel Ext" -i 0x23bea 1 5 1 -i 0x23beb 1 96 1
+"Hariyama - F" -d "grotto/Pinwheel Ext" -i 0x23bea 1 5 1 -i 0x23beb 1 0 1
+# Route 3-Daycare
+"Zebstrika - M" -d "grotto/Route 3 Daycare" -i 0x23bec 1 1 1 -i 0x23bed 1 96 1
+"Zebstrika - F" -d "grotto/Route 3 Daycare" -i 0x23bec 1 1 1 -i 0x23bed 1 0 1
+"Manectric - M" -d "grotto/Route 3 Daycare" -i 0x23bec 1 3 1 -i 0x23bed 1 96 1
+"Manectric - F" -d "grotto/Route 3 Daycare" -i 0x23bec 1 3 1 -i 0x23bed 1 0 1
+"Pachirisu - M" -d "grotto/Route 3 Daycare" -i 0x23bec 1 5 1 -i 0x23bed 1 96 1
+"Pachirisu - F" -d "grotto/Route 3 Daycare" -i 0x23bec 1 5 1 -i 0x23bed 1 0 1
+# Route 3-Pond
+"Lombre - M" -d "grotto/Route 3 Pond" -i 0x23bee 1 1 1 -i 0x23bef 1 96 1
+"Lombre - F" -d "grotto/Route 3 Pond" -i 0x23bee 1 1 1 -i 0x23bef 1 0 1
+"Venonat - M" -d "grotto/Route 3 Pond" -i 0x23bee 1 3 1 -i 0x23bef 1 96 1
+"Venonat - F" -d "grotto/Route 3 Pond" -i 0x23bee 1 3 1 -i 0x23bef 1 0 1
+"Bibarel - M" -d "grotto/Route 3 Pond" -i 0x23bee 1 5 1 -i 0x23bef 1 96 1
+"Bibarel - F" -d "grotto/Route 3 Pond" -i 0x23bee 1 5 1 -i 0x23bef 1 0 1
+# Route 2
+"Granbull - M" -d "grotto/Route 2" -i 0x23bf0 1 1 1 -i 0x23bf1 1 96 1
+"Granbull - F" -d "grotto/Route 2" -i 0x23bf0 1 1 1 -i 0x23bf1 1 0 1
+"Nidoran - M" -d "grotto/Route 2" -i 0x23bf0 1 3 1 -i 0x23bf1 1 96 1
+"Nidoran - F" -d "grotto/Route 2" -i 0x23bf0 1 99 1 -i 0x23bf1 1 0 1
+"Watchog - M" -d "grotto/Route 2" -i 0x23bf0 1 5 1 -i 0x23bf1 1 96 1
+"Watchog - F" -d "grotto/Route 2" -i 0x23bf0 1 5 1 -i 0x23bf1 1 0 1
+# Route 18
+"Dragonite - M" -d "grotto/Route 18" -i 0x23bf2 1 1 1 -i 0x23bf3 1 96 1
+"Dragonite - F" -d "grotto/Route 18" -i 0x23bf2 1 1 1 -i 0x23bf3 1 0 1
+"Chatot - M" -d "grotto/Route 18" -i 0x23bf2 1 3 1 -i 0x23bf3 1 96 1
+"Chatot - F" -d "grotto/Route 18" -i 0x23bf2 1 3 1 -i 0x23bf3 1 0 1
+"Kingler - M" -d "grotto/Route 18" -i 0x23bf2 1 5 1 -i 0x23bf3 1 96 1
+"Kingler - F" -d "grotto/Route 18" -i 0x23bf2 1 5 1 -i 0x23bf3 1 0 1
+"Corsola - M" -d "grotto/Route 18" -i 0x23bf2 1 101 1 -i 0x23bf3 1 96 1
+"Corsola - F" -d "grotto/Route 18" -i 0x23bf2 1 101 1 -i 0x23bf3 1 0 1
+# Reset
+"N and Shadow Triad battles" -d "reset" -d "reset" -i 0x20228 1 2 1 -i 0x202D0 1 214 1 -i 0x203E0 1 27 1 -i 0x203E2 2 26748 1 -i 0x20218 1 0 1
+"Geonet" -d "reset" -d "reset" -i 0x1941C 1 0 1 -i 0x1941D 1 0 1 -i 0x1A93A 1 10 1 -i 0x1A93B 1 133 1 -i 0x25F3A 1 10 1 -i 0x25F3B 1 133 1
+"Alder Battle v2" -d "reset" -i 0x20293 1 104 1 -i 0x1FF1E 1 1 1
+"Bianca Battle" -d "reset" -i 0x2016c 1 0 1
+"Cheren Battle" -d "reset" -i 0x20294 1 0 1
+"Most Memory Link Cutscenes" -d "reset" -i 0x1FF8A 2 0 6 -i 0x1FF98 2 0 1 -i 0x2017C 2 0 1 -i 0x2017E 2 1 1 -i 0x20180 2 0 1 -i 0x201A8 2 0 1 -i 0x2022C 2 0 1 -i 0x20297 1 28 1 -i 0x202D9 1 10 1 -i 0x202DC 2 220 1
+"Reshiram or Zekrom" -d "reset" -i 0x2027B 1 2 1 -i 0x202B1 1 51 1
+"Kyurem" -d "reset" -i 0x2027D 1 16 1 -i 0x202DB 1 168 1
+"Cobalion, Virizion, Terrakion" -d "reset" -i 0x20283 1 1 1 -i 0x202C2 1 240 1 -i 0x20287 1 113 1 -i 0x202C3 1 74 1
+"Dreamyard Lati" -d "reset" -i 0x20118 1 0 1 -i 0x2028C 1 137 1 -i 0x2028E 1 158 1 -i 0x2029C 1 0 1
+"Lake Guardians, Regis" -d "reset" -i 0x2012C 1 1 1 -i 0x2028F 1 2 1 -i 0x2012E 1 1 1 -i 0x20130 1 1 1 -i 0x20290 1 192 1 -i 0x202D1 1 225 1
+"Cresselia & Heatran" -d "reset" -i 0x1FFE6 1 1 1 -i 0x2028D 1 70 1 -i 0x2029B 1 26 1 -i 0x1FFE8 1 1 1
+"Volcarona" -d "reset" -i 0x20290 1 192 1 -i 0x202D2 1 144 1
+"Benga's Dragon" -d "reset" -i 0x202DA 1 169 1
+"Relic Song" -d "reset" -i 0x20279 1 101 1
+"Genesect Drives" -d "reset" -i 0x2001E 1 0 1 -i 0x202B0 1 241 1
+"Eevee" -d "reset" -i 0x2028F 1 2 1
+"Fossil Choice" -d "reset" -i 0x1FFF8 1 0 1 -i 0x20295 1 0 1

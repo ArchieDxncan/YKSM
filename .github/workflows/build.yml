@@ -1,0 +1,59 @@
+name: Build YoKaiWatchBank
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  host-tests:
+    name: Core tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Build and run tests
+        run: |
+          make -C tests build/YokaiCoreTests
+          ./tests/build/YokaiCoreTests
+
+  build-3ds:
+    name: Nintendo 3DS build
+    runs-on: ubuntu-latest
+    container:
+      image: devkitpro/devkitarm:latest
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          dkp-pacman -Syu --noconfirm \
+            3ds-dev \
+            3ds-curl \
+            3ds-bzip2 \
+            3ds-mpg123 \
+            3ds-pkg-config \
+            3dstools \
+            tex3ds
+
+      - name: Build application
+        run: make debug -j2
+
+      - name: Upload application
+        uses: actions/upload-artifact@v4
+        with:
+          name: YoKaiWatchBank-3DS
+          path: |
+            3ds/out/YoKaiWatchBank.3dsx
+            3ds/out/YoKaiWatchBank.cia
+            3ds/out/YoKaiWatchBank.elf
+          if-no-files-found: error

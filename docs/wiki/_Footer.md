@@ -1,0 +1,1 @@
+Looking for more support? Join our [Discord](https://discord.gg/bGKEyfY)

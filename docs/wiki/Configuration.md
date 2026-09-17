@@ -1,0 +1,1 @@
+This page has moved [HERE](https://github.com/FlagBrew/PKSM/wiki/Settings)

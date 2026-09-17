@@ -1,0 +1,18 @@
+{
+    "TRANSFER_SHOULD_SEND_1": "変更したファイルを",
+    "TRANSFER_SHOULD_SEND_2": "元のクライアントに送りますか?",
+    "CLOUD_BOX": "クラウド {:d}",
+    "DOWNLOADING_FILE": "{:s}をダウンロード中…",
+    "GPSS_DOWNLOAD": "このGPSSポケモンをダウンロードしますか?",
+    "GPSS_DOWNLOAD_GROUP": "GPSSからグループをダウンロードしますか?",
+    "PKM_LEGALIZED": "ポケモンは整合性にしました!",
+    "SHARE_CODE_ENTER_PROMPT": "共有コードを入力しますか?",
+    "SHARE_DOWNLOAD_CODE": "あなたのダウンロードコードは",
+    "SHARE_SEND_CONFIRM": "ポケモンを共有しますか?",
+    "UPLOAD_GROUP": "グループをGPSSにアップロードしますか?",
+    "WIRELESS_ADDRESS_HINT": "Receiver address (IP or IP:port)",
+    "WIRELESS_IP": "IPアドレス: {:s}",
+    "WIRELESS_PIN_HINT": "Receiver PIN",
+    "WIRELESS_SENDING": "Sending save...",
+    "WIRELESS_WARNING": "セーブデータを受信するまで3DS/2DSはロックされます"
+}

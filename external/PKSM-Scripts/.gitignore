@@ -1,0 +1,17 @@
+scripts
+*.pksm
+__pycache__
+script_list.txt
+
+# dev tools - Node.js
+dev/**/*
+!dev/docs/**
+!dev/python/*.py
+!dev/node/*.js
+!dev/node/package.json
+
+# local script dev stuff
+.vscode/**/*
+test
+saves
+PKSMScript.pyc
