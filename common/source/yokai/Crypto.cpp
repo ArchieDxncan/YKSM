@@ -3,7 +3,10 @@
  */
 #include "yokai/Crypto.hpp"
 #include "yokai/SaveImage.hpp"
+extern "C"
+{
 #include "aes.h"
+}
 #include <algorithm>
 #include <array>
 #include <map>

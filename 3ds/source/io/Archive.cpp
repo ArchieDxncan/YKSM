@@ -25,12 +25,10 @@
  */
 
 #include "Archive.hpp"
-#include "csvc.h"
 #include "Directory.hpp"
 #include "File.hpp"
 #include "internal_fspxi.hpp"
 #include "smdh.hpp"
-#include "STDirectory.hpp"
 #include <array>
 #include <sys/stat.h>
 
@@ -38,12 +36,12 @@ namespace
 {
     constexpr u64 MOVE_BUFFER_SIZE = 16 * 1024;
 
-    constexpr FS_ExtSaveDataInfo PKSM_ARCHIVE_DATA = {MEDIATYPE_SD, 0, 0, UNIQUE_ID, 0};
+    constexpr FS_ExtSaveDataInfo YKSM_ARCHIVE_DATA = {MEDIATYPE_SD, 0, 0, UNIQUE_ID, 0};
 
     Archive sdArchive;
     Archive dataArchive;
 
-    // A healthy PKSM ext data archive lets us list its root. If the archive opens but its root
+    // A healthy YKSM extdata archive lets us list its root. If the archive opens but its root
     // cannot be read, it is corrupt (#1558) and must be recreated.
     bool extdataReadable()
     {
@@ -51,110 +49,6 @@ namespace
         return root && root->loaded();
     }
 
-    void moveOldBackups()
-    {
-        STDirectory d("/3ds/PKSM/backup");
-        if (d.good())
-        {
-            for (size_t i = 0; i < d.count(); i++)
-            {
-                std::string abbreviation = d.item(i).substr(0, d.item(i).find('_'));
-                if (abbreviation == "PT")
-                {
-                    abbreviation = "PL";
-                }
-                if (abbreviation.size() > 2)
-                {
-                    // This is not in the correct format, abort
-                    continue;
-                }
-                else if (abbreviation == "P" || abbreviation == "D" || abbreviation == "PL" ||
-                         abbreviation == "HG" || abbreviation == "SS" || abbreviation == "B" ||
-                         abbreviation == "W" || abbreviation == "B2" || abbreviation == "W2")
-                {
-                    Archive::moveFile(Archive::sd(), "/3ds/PKSM/backup/" + d.item(i) + "/main",
-                        Archive::sd(),
-                        "/3ds/PKSM/backup/" + d.item(i) + "/POKEMON " + abbreviation + ".sav");
-                }
-
-                std::string destFolder = "/3ds/PKSM/backups/";
-
-                if (abbreviation == "P")
-                {
-                    destFolder += "APAE";
-                }
-                else if (abbreviation == "D")
-                {
-                    destFolder += "ADAE";
-                }
-                else if (abbreviation == "PL")
-                {
-                    destFolder += "CPUE";
-                }
-                else if (abbreviation == "HG")
-                {
-                    destFolder += "IPKE";
-                }
-                else if (abbreviation == "SS")
-                {
-                    destFolder += "IPGE";
-                }
-                else if (abbreviation == "B")
-                {
-                    destFolder += "IRBO";
-                }
-                else if (abbreviation == "W")
-                {
-                    destFolder += "IRAO";
-                }
-                else if (abbreviation == "B2")
-                {
-                    destFolder += "IREO";
-                }
-                else if (abbreviation == "W2")
-                {
-                    destFolder += "IRDO";
-                }
-                else if (abbreviation == "X")
-                {
-                    destFolder += "0x0055D";
-                }
-                else if (abbreviation == "Y")
-                {
-                    destFolder += "0x0055E";
-                }
-                else if (abbreviation == "OR")
-                {
-                    destFolder += "0x011C4";
-                }
-                else if (abbreviation == "AS")
-                {
-                    destFolder += "0x011C5";
-                }
-                else if (abbreviation == "S")
-                {
-                    destFolder += "0x01648";
-                }
-                else if (abbreviation == "M")
-                {
-                    destFolder += "0x0175E";
-                }
-                else if (abbreviation == "US")
-                {
-                    destFolder += "0x01B50";
-                }
-                else if (abbreviation == "UM")
-                {
-                    destFolder += "0x01B51";
-                }
-
-                mkdir(destFolder.c_str(), 777);
-
-                Archive::moveDir(Archive::sd(), "/3ds/PKSM/backup/" + d.item(i), Archive::sd(),
-                    destFolder + '/' + d.item(i));
-            }
-        }
-    }
 }
 
 Archive::Archive(FS_ArchiveID id, FS_Path path, bool pxi) : mPXI(pxi)
@@ -548,11 +442,6 @@ Result Archive::deleteDir(const std::u16string& dir)
 Result Archive::init(const std::string& execPath, bool (*confirmExtdataReset)())
 {
     Result res = 0;
-    if (R_FAILED(res = svcControlService(SERVICEOP_STEAL_CLIENT_SESSION, &fspxiHandle, "PxiFS0")))
-    {
-        return res;
-    }
-
     sdArchive = Archive{ARCHIVE_SDMC, fsMakePath(PATH_EMPTY, ""), false};
     if (R_FAILED(sd().result()))
     {
@@ -573,7 +462,7 @@ Result Archive::init(const std::string& execPath, bool (*confirmExtdataReset)())
                 return openResult;
             }
 
-            if (R_FAILED(res = FSUSER_DeleteExtSaveData(PKSM_ARCHIVE_DATA)))
+            if (R_FAILED(res = FSUSER_DeleteExtSaveData(YKSM_ARCHIVE_DATA)))
             {
                 return res;
             }
@@ -611,7 +500,7 @@ Result Archive::init(const std::string& execPath, bool (*confirmExtdataReset)())
         {
             return res;
         }
-        if (R_FAILED(res = FSUSER_DeleteExtSaveData(PKSM_ARCHIVE_DATA)))
+        if (R_FAILED(res = FSUSER_DeleteExtSaveData(YKSM_ARCHIVE_DATA)))
         {
             return res;
         }
@@ -637,7 +526,7 @@ Result Archive::init(const std::string& execPath, bool (*confirmExtdataReset)())
         auto checkFile = data().file(fsMakePath(PATH_UTF16, u"/sizeCheck"), FS_OPEN_READ);
         if (!checkFile)
         {
-            if (R_FAILED(res = copyDir(data(), u"/", sd(), u"/3ds/PKSM/extdata")))
+            if (R_FAILED(res = copyDir(data(), u"/", sd(), u"/3ds/YKSM/extdata")))
             {
                 return res;
             }
@@ -646,7 +535,7 @@ Result Archive::init(const std::string& execPath, bool (*confirmExtdataReset)())
             {
                 return res;
             }
-            if (R_FAILED(res = FSUSER_DeleteExtSaveData(PKSM_ARCHIVE_DATA)))
+            if (R_FAILED(res = FSUSER_DeleteExtSaveData(YKSM_ARCHIVE_DATA)))
             {
                 return res;
             }
@@ -657,7 +546,7 @@ Result Archive::init(const std::string& execPath, bool (*confirmExtdataReset)())
 
             data() = extdata(UNIQUE_ID, false);
 
-            if (R_FAILED(res = moveDir(sd(), u"/3ds/PKSM/extdata", data(), u"/")))
+            if (R_FAILED(res = moveDir(sd(), u"/3ds/YKSM/extdata", data(), u"/")))
             {
                 return res;
             }
@@ -674,21 +563,9 @@ Result Archive::init(const std::string& execPath, bool (*confirmExtdataReset)())
         }
     }
     mkdir("/3ds", 777);
-    mkdir("/3ds/PKSM", 777);
-    mkdir("/3ds/PKSM/assets", 777);
-    mkdir("/3ds/PKSM/backups", 777);
-    mkdir("/3ds/PKSM/backups/wireless", 777);
-    mkdir("/3ds/PKSM/defaults", 777);
-    mkdir("/3ds/PKSM/dumps", 777);
-    mkdir("/3ds/PKSM/banks", 777);
-    mkdir("/3ds/PKSM/songs", 777);
-    mkdir("/3ds/PKSM/logs", 777);
-
-    Archive::data().createDir(fsMakePath(PATH_UTF16, u"/banks"), 0);
-    Archive::sd().deleteDir(u"/3ds/PKSM/additionalassets");
-
-    moveOldBackups();
-    Archive::sd().deleteDir(u"/3ds/PKSM/backup");
+    mkdir("/3ds/YKSM", 777);
+    mkdir("/3ds/YKSM/backups", 777);
+    mkdir("/3ds/YKSM/logs", 777);
     return res;
 }
 
@@ -698,7 +575,7 @@ void Archive::exit(void)
     data().commit();
     data().close();
 
-    svcCloseHandle(fspxiHandle);
+    if (fspxiHandle) svcCloseHandle(fspxiHandle);
 }
 
 Archive& Archive::sd()
@@ -796,7 +673,7 @@ Result Archive::createPKSMExtdataArchive(const std::string& execPath)
     }
 
     Result res = FSUSER_CreateExtSaveData(
-        PKSM_ARCHIVE_DATA, ndirs, nfiles, sizeLimit, sizeof(smdh_s), (u8*)smdh);
+        YKSM_ARCHIVE_DATA, ndirs, nfiles, sizeLimit, sizeof(smdh_s), (u8*)smdh);
     delete smdh;
     return res;
 }

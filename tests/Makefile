@@ -1,4 +1,4 @@
-# Host tests. No devkitPro, no libctru: these cover the parts of PKSM that are pure.
+# Host tests. No devkitPro or libctru is required for the portable test targets.
 #   make -C tests
 
 CXX      ?= g++
@@ -74,14 +74,17 @@ $(BUILD)/YokaiCoreTests: YokaiCoreTests.cpp \
 		../common/source/yokai/Yokai.cpp ../common/source/yokai/Species.cpp \
 		../common/source/yokai/SaveImage.cpp ../common/source/yokai/YokaiBank.cpp \
 		../common/source/yokai/Transfer.cpp ../common/source/yokai/Session.cpp \
-		../common/source/yokai/Crypto.cpp ../core/memecrypto/aes.c | $(BUILD)
+		../common/source/yokai/Crypto.cpp $(BUILD)/aes.o | $(BUILD)
 	@$(CXX) $(CXXFLAGS) $(INCLUDE) -o $@ $^
 
 $(BUILD)/YokaiFixtureTests: YokaiFixtureTests.cpp \
 		../common/source/yokai/Yokai.cpp ../common/source/yokai/Species.cpp \
 		../common/source/yokai/SaveImage.cpp ../common/source/yokai/Crypto.cpp \
-		../core/memecrypto/aes.c | $(BUILD)
+		$(BUILD)/aes.o | $(BUILD)
 	@$(CXX) $(CXXFLAGS) $(INCLUDE) -o $@ $^
+
+$(BUILD)/aes.o: ../core/memecrypto/aes.c | $(BUILD)
+	@$(CC) -std=gnu11 -g -Wall -Wextra -Werror -Og -I../core/memecrypto -c -o $@ $<
 
 $(BUILD):
 	@mkdir -p $(BUILD)
