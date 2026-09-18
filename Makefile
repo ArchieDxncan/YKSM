@@ -35,6 +35,7 @@ no-scripts: 3ds-no-scripts
 no-gifts: 3ds-no-gifts
 
 revision:
+	@mkdir -p common/include
 ifneq ($(NOW_INFO),$(OLD_INFO))
 	@echo \#define GIT_REV \"$(GIT_REV)\" > common/include/revision.h
 	@echo \#define VERSION_MAJOR $(VERSION_MAJOR) >> common/include/revision.h
