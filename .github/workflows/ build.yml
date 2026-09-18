@@ -50,6 +50,7 @@ jobs:
 
           git clone --quiet https://github.com/3DSGuy/Project_CTR.git /tmp/project-ctr
           git -C /tmp/project-ctr checkout --quiet e8f5f529c54ff9b22a2491a480ffa69206bf7b19
+          make -C /tmp/project-ctr/makerom deps -j2
           make -C /tmp/project-ctr/makerom -j2
           install -m755 /tmp/project-ctr/makerom/bin/makerom /usr/local/bin/makerom
 
