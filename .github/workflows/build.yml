@@ -1,0 +1,76 @@
+name: Build YKSM
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  host-tests:
+    name: Core tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Build and run core tests
+        run: |
+          make -C tests build/YokaiCoreTests
+          ./tests/build/YokaiCoreTests
+
+  build-3ds:
+    name: Nintendo 3DS build
+    runs-on: ubuntu-latest
+    container: devkitpro/devkitarm:latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Trust the Actions workspace
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: Install 3DS libraries
+        run: |
+          dkp-pacman -Syu --needed --noconfirm \
+            3ds-curl 3ds-bzip2 3ds-mpg123 3ds-pkg-config 3dstools tex3ds
+
+      - name: Build CIA host tools
+        run: |
+          git clone --quiet https://github.com/carstene1ns/3ds-bannertool.git /tmp/bannertool
+          git -C /tmp/bannertool checkout --quiet 734d33be79fd3f8c29c6296158f06ac7c5ca9dcb
+          cmake -S /tmp/bannertool -B /tmp/bannertool-build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build /tmp/bannertool-build
+          install -m755 /tmp/bannertool-build/bannertool /usr/local/bin/bannertool
+
+          git clone --quiet https://github.com/3DSGuy/Project_CTR.git /tmp/project-ctr
+          git -C /tmp/project-ctr checkout --quiet e8f5f529c54ff9b22a2491a480ffa69206bf7b19
+          make -C /tmp/project-ctr/makerom -j2
+          install -m755 /tmp/project-ctr/makerom/bin/makerom /usr/local/bin/makerom
+
+          git clone --quiet https://github.com/dnasdw/3dstool.git /tmp/3dstool
+          git -C /tmp/3dstool checkout --quiet 3771ae967d64092370b646db86aa626401c279e8
+          cmake -S /tmp/3dstool -B /tmp/3dstool-build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release
+          cmake --build /tmp/3dstool-build
+          install -m755 /tmp/3dstool/bin/Release/3dstool /usr/local/bin/3dstool
+
+          command -v bannertool makerom 3dstool
+
+      - name: Build YKSM
+        run: make debug -j2
+
+      - name: Upload application
+        uses: actions/upload-artifact@v4
+        with:
+          name: YKSM-3DS
+          path: |
+            3ds/out/YKSM.3dsx
+            3ds/out/YKSM.cia
+            3ds/out/YKSM.elf
+          if-no-files-found: error
