@@ -113,9 +113,11 @@ namespace yokai::title
         if (location.media == MEDIATYPE_SD)
         {
             u8 out = 0;
-            const u64 secureValue = (static_cast<u64>(SECUREVALUE_SLOT_SD) << 32) |
+            u64 secureValue = (static_cast<u64>(SECUREVALUE_SLOT_SD) << 32) |
                 (static_cast<u32>(location.titleId) & 0xFFFFFF00);
-            FSUSER_ControlSecureSave(SECURESAVE_ACTION_DELETE, &secureValue, 8, &out, 1);
+            const Result result =
+                FSUSER_ControlSecureSave(SECURESAVE_ACTION_DELETE, &secureValue, 8, &out, 1);
+            if (R_FAILED(result)) throw Error("Could not clear the installed game's secure value");
         }
     }
 }
