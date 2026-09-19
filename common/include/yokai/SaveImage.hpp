@@ -3,6 +3,7 @@
 #define YOKAI_SAVEIMAGE_HPP
 
 #include "Yokai.hpp"
+#include <optional>
 #include <span>
 #include <stdexcept>
 #include <vector>
@@ -26,6 +27,8 @@ namespace yokai
         [[nodiscard]] const std::vector<std::uint8_t>& bytes() const { return mBytes; }
         [[nodiscard]] std::vector<Record> records() const;
         [[nodiscard]] bool hasFreeSlot() const;
+        [[nodiscard]] std::string playerName() const;
+        [[nodiscard]] std::optional<std::uint64_t> playTimeSeconds() const;
 
         void remove(std::size_t slot, std::span<const std::uint8_t> expected);
         std::size_t insert(std::span<const std::uint8_t> record, bool assignNumbers = false);

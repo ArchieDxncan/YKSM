@@ -145,6 +145,25 @@ namespace yokai
         return false;
     }
 
+    std::string SaveImage::playerName() const
+    {
+        // The published YW1 save dumper identifies the player-name field at
+        // 0x28. Later games keep profile data inside versioned/obfuscated
+        // sections, so do not guess at a field and risk displaying junk.
+        if (mGame != Game::YW1 || mBytes.size() < 0x38) return {};
+        return decodeNickname(std::span<const std::uint8_t>(mBytes).subspan(0x28, 0x10));
+    }
+
+    std::optional<std::uint64_t> SaveImage::playTimeSeconds() const
+    {
+        // YW1 records elapsed play time as 60 Hz ticks at 0x60. Later games
+        // moved profile data into versioned/obfuscated sections; keep their
+        // display explicit rather than guessing at a look-alike counter.
+        if (mGame == Game::YW1 && mBytes.size() >= 0x64)
+            return static_cast<std::uint64_t>(read32(mBytes, 0x60)) / 60;
+        return std::nullopt;
+    }
+
     void SaveImage::syncIndex(std::size_t slot, std::span<const std::uint8_t> removedNumber)
     {
         const Layout& info = layout(mGame);
