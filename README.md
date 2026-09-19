@@ -33,8 +33,9 @@ Save-selection screen:
 
 Save overview:
 
-- The top screen shows the save's player name and play-time field (decoded for Yo-kai Watch 1;
-  later formats currently show a clear fallback until their regional profile layouts are verified)
+- The top screen uses PKSM's original main-menu composition and shows verified profile metadata.
+  Yo-kai Watch 1 player names are decoded; play time currently shows **Not available** because the
+  formerly used `0x60` value is not a play-time field. Unverified values are never presented as fact.
 - A or tapping **Yo-Kai** opens the transfer lists
 - B: return to save selection
 
@@ -84,6 +85,14 @@ Encrypted backups can be checked without committing personal saves:
 make -C tests build/YokaiFixtureTests
 ./tests/build/YokaiFixtureTests /path/to/extracted/saves
 ```
+
+## Nintendo 3DS performance
+
+The selected save is discovered, read, decrypted, and parsed once, then shared by the overview and
+transfer screens. Marked deposits use the already parsed records instead of rescanning every save
+slot for every transfer. Withdrawals reuse one destination template per batch, and the lists are
+rebuilt only after the batch completes. This is especially important for the larger YW3 and action
+game saves on the 3DS CPU.
 
 ## Building locally
 

@@ -6,6 +6,7 @@
 #include "YokaiSaveOverviewScreen.hpp"
 #include <algorithm>
 #include <cstdio>
+#include <utility>
 
 namespace
 {
@@ -102,38 +103,36 @@ std::string YokaiTitleSelectScreen::saveLabel(const Group& group, std::size_t in
     return group.exports[index].filename().string();
 }
 
-std::size_t YokaiTitleSelectScreen::sourceIndex(const Group& group, std::size_t index) const
-{
-    if (!group.installed) return index;
-    const auto target = group.locations[index];
-    std::size_t result = 0;
-    for (std::size_t location = 0; location < target; location++)
-        if (locations[location].game == group.game) result++;
-    return result;
-}
-
 void YokaiTitleSelectScreen::openSelected()
 {
     if (groups.empty()) return;
     const auto& group = groups[selectedGroup];
-    ScreenStack::push(std::make_unique<YokaiSaveOverviewScreen>(
-        group.game, sourceIndex(group, std::min(selectedSave, saveCount(group) - 1)),
-        group.installed));
+    const std::size_t index = std::min(selectedSave, saveCount(group) - 1);
+    yokai::SaveSource source;
+    source.game = group.game;
+    if (group.installed)
+        source.installed = locations[group.locations[index]];
+    else
+        source.exported = group.exports[index];
+    ScreenStack::push(std::make_unique<YokaiSaveOverviewScreen>(std::move(source)));
 }
 
 void YokaiTitleSelectScreen::drawTop() const
 {
     const PKSM_Color navy(15, 22, 89, 255);
-    const PKSM_Color panel(31, 43, 132, 255);
     Gui::drawSolidRect(0, 0, 400, 240, navy);
+    Gui::sprite(manualMode ? ui_sheet_emulated_gameselector_bg_solid_idx
+                           : ui_sheet_emulated_gameselector_bg_idx,
+        4, 29);
+    if (!manualMode) Gui::sprite(ui_sheet_gameselector_cart_idx, 35, 93);
     Gui::text(manualMode ? "Choose an exported save. Press Y for installed games."
                          : "Choose a save to open. Press Y for manual saves.",
         200, 8, FONT_SIZE_11, COLOR_WHITE, TextPosX::CENTER, TextPosY::TOP,
         TextWidthAction::SQUISH, 394);
-    Gui::drawSolidRect(5, 29, 120, 185, panel);
-    Gui::drawSolidRect(129, 29, 266, 185, panel);
-
     std::size_t installedOrdinal = 0;
+    const std::size_t installedCount = static_cast<std::size_t>(std::count_if(groups.begin(),
+        groups.end(), [this](const Group& group)
+        { return manualMode || group.media != MEDIATYPE_GAME_CARD; }));
     bool cardDrawn = false;
     for (std::size_t index = 0; index < groups.size(); index++)
     {
@@ -142,15 +141,17 @@ void YokaiTitleSelectScreen::drawTop() const
         int y = 0;
         if (!manualMode && group.media == MEDIATYPE_GAME_CARD && !cardDrawn)
         {
-            x = 37; y = 83; cardDrawn = true;
+            x = 40; y = 98; cardDrawn = true;
         }
         else
         {
-            x = 145 + static_cast<int>(installedOrdinal % 4) * 60;
-            y = 62 + static_cast<int>(installedOrdinal / 4) * 72;
+            x = 150 + static_cast<int>(installedOrdinal % 4) * 60;
+            y = installedCount > 8 ? 38 + static_cast<int>(installedOrdinal / 4) * 60
+                                   : (installedCount > 4
+                                           ? 68 + static_cast<int>(installedOrdinal / 4) * 60
+                                           : 98);
             installedOrdinal++;
         }
-        if (index == selectedGroup) Gui::drawSolidRect(x - 4, y - 4, 56, 56, COLOR_YELLOW);
         if (group.title && group.title->icon().tex)
         {
             Gui::drawImageAt(group.title->icon(), x, y, nullptr, 1.0f, 1.0f);
@@ -162,13 +163,13 @@ void YokaiTitleSelectScreen::drawTop() const
             Gui::text(std::string(yokai::gameName(group.game)), x + 24, y + 17, FONT_SIZE_9,
                 COLOR_WHITE, TextPosX::CENTER, TextPosY::TOP, TextWidthAction::SQUISH, 38);
         }
+        if (index == selectedGroup) Gui::drawSelector(x - 1, y - 1);
     }
 
     if (!cardDrawn && !manualMode)
     {
-        Gui::drawSolidRect(37, 83, 48, 48, PKSM_Color(35, 39, 72, 255));
-        Gui::text(
-            "CARD", 61, 100, FONT_SIZE_9, COLOR_WHITE, TextPosX::CENTER, TextPosY::TOP);
+        Gui::text("No card", 64, 111, FONT_SIZE_9, COLOR_WHITE,
+            TextPosX::CENTER, TextPosY::TOP);
     }
     if (groups.empty())
         Gui::text("No supported installed saves found", 262, 105, FONT_SIZE_14, COLOR_WHITE,
@@ -181,8 +182,10 @@ void YokaiTitleSelectScreen::drawTop() const
 void YokaiTitleSelectScreen::drawBottom() const
 {
     const PKSM_Color navy(15, 22, 89, 255);
-    const PKSM_Color blue(31, 43, 132, 255);
-    Gui::drawSolidRect(0, 0, 320, 240, navy);
+    Gui::backgroundBottom(true);
+    Gui::drawSolidRect(0, 0, 320, 20, PKSM_Color(40, 53, 147, 255));
+    Gui::text(manualMode ? "MANUAL SAVES" : "INSTALLED GAMES", 160, 3, FONT_SIZE_11,
+        COLOR_WHITE, TextPosX::CENTER, TextPosY::TOP);
     if (groups.empty())
     {
         Gui::text("Press Y to choose a manual save", 160, 104, FONT_SIZE_14, COLOR_WHITE,
@@ -192,6 +195,8 @@ void YokaiTitleSelectScreen::drawBottom() const
         return;
     }
 
+    Gui::sprite(ui_sheet_gameselector_savebox_idx, 22, 94);
+    Gui::saveboxDivider(146);
     const auto& group = groups[selectedGroup];
     const std::string titleName = group.title && !group.title->name().empty()
                                       ? group.title->name()
@@ -208,22 +213,23 @@ void YokaiTitleSelectScreen::drawBottom() const
                                                                : "Media Type: SD");
     Gui::text(media, 27, 56, FONT_SIZE_9, COLOR_LIGHTBLUE, TextPosX::LEFT, TextPosY::TOP);
 
-    Gui::drawSolidRect(22, 88, 176, 108, blue);
-    Gui::drawSolidRect(200, 88, 96, 108, PKSM_Color(19, 28, 99, 255));
-    Gui::text(group.installed ? "Game Save File" : "Exported Save File", 29, 91,
-        FONT_SIZE_9, COLOR_WHITE, TextPosX::LEFT, TextPosY::TOP);
+    if (group.title && group.title->icon().tex)
+    {
+        Gui::drawSolidRect(243, 21, 52, 52, navy);
+        Gui::drawImageAt(group.title->icon(), 245, 23, nullptr, 1.0f, 1.0f);
+    }
     const std::size_t count = saveCount(group);
     for (std::size_t index = 0; index < count && index < 5; index++)
     {
-        const int y = 111 + static_cast<int>(index) * 16;
-        if (index == selectedSave) Gui::drawSolidRect(25, y - 1, 170, 15, navy);
-        Gui::text(saveLabel(group, index), 29, y, FONT_SIZE_9, COLOR_WHITE,
+        const int y = 97 + static_cast<int>(index) * 17;
+        if (index == selectedSave) Gui::drawSolidRect(24, y - 1, 174, 16, navy);
+        Gui::text(saveLabel(group, index), 29, y, FONT_SIZE_11, COLOR_WHITE,
             TextPosX::LEFT, TextPosY::TOP, TextWidthAction::SLICE, 162);
     }
-    Gui::text("Load  A", 248, 134, FONT_SIZE_14, COLOR_WHITE,
-        TextPosX::CENTER, TextPosY::TOP);
-    Gui::text("Move your D-Pad. Press A to continue. START to exit.", 160, 218,
-        FONT_SIZE_9, COLOR_WHITE, TextPosX::CENTER, TextPosY::TOP,
+    Gui::text("Load", 248, 120, FONT_SIZE_14, COLOR_WHITE,
+        TextPosX::CENTER, TextPosY::CENTER);
+    Gui::text("D-Pad: move   A: continue   Y: source   START: exit", 160, 223,
+        FONT_SIZE_11, COLOR_WHITE, TextPosX::CENTER, TextPosY::TOP,
         TextWidthAction::SQUISH, 316);
 }
 

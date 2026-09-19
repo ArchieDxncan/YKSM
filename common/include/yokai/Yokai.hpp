@@ -49,7 +49,7 @@ namespace yokai
         std::uint32_t xp = 0;
         std::vector<std::uint8_t> raw;
 
-        [[nodiscard]] std::string displayName() const
+        [[nodiscard]] const std::string& displayName() const
         {
             return nickname.empty() ? species : nickname;
         }

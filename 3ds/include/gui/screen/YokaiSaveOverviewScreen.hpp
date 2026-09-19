@@ -3,14 +3,15 @@
 #define YOKAI_SAVE_OVERVIEW_SCREEN_HPP
 
 #include "Screen.hpp"
-#include "yokai/Yokai.hpp"
-#include <cstddef>
+#include "ClickButton.hpp"
+#include "yokai/YokaiSaveContext.hpp"
+#include <memory>
 #include <string>
 
 class YokaiSaveOverviewScreen : public Screen
 {
 public:
-    YokaiSaveOverviewScreen(yokai::Game game, std::size_t sourceIndex, bool useInstalledSave);
+    explicit YokaiSaveOverviewScreen(yokai::SaveSource source);
     void drawTop() const override;
     void drawBottom() const override;
     void update(touchPosition* touch) override;
@@ -19,11 +20,11 @@ private:
     void loadProfile();
     void openYokai();
 
-    yokai::Game game;
-    std::size_t sourceIndex;
-    bool useInstalledSave;
+    yokai::SaveSource source;
+    std::shared_ptr<yokai::SaveContext> context;
+    std::unique_ptr<ClickButton> yokaiButton;
     std::string playerName = "Player";
-    std::string playTime = "--:--";
+    std::string playTime = "Not available";
     std::string status;
     bool loaded = false;
 };

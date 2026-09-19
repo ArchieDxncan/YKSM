@@ -19,10 +19,15 @@ namespace yokai
         // Own the selected record before mutating the save. This mirrors
         // ArchieDxncan/ykw-bank's staged-transfer model and prevents any
         // view/iterator into a parsed record list from surviving mutation.
-        const Record selected = *found;
+        return deposit(*found);
+    }
+
+    std::uint64_t Session::deposit(const Record& record)
+    {
+        const Record selected = record;
         // Mutate the save first. If its stale-record guard rejects the change,
         // no bank entry has been added.
-        mSave.remove(slot, selected.raw);
+        mSave.remove(selected.slot, selected.raw);
         try
         {
             const std::uint64_t id = mBank.append(mSave.game(), selected).id;
@@ -38,15 +43,21 @@ namespace yokai
 
     std::size_t Session::withdraw(std::uint64_t bankId)
     {
+        std::vector<std::uint8_t> example;
+        const auto existing = mSave.records();
+        if (!existing.empty()) example = existing.front().raw;
+        return withdraw(bankId, example);
+    }
+
+    std::size_t Session::withdraw(
+        std::uint64_t bankId, std::span<const std::uint8_t> destinationExample)
+    {
         const BankEntry* selected = mBank.find(bankId);
         if (!selected) throw Error("Selected bank entry was not found");
         const BankEntry entry = *selected;
         if (!compatible(mSave.game(), entry))
             throw Error(entry.species + " is not compatible with " + std::string(gameName(mSave.game())));
-        std::span<const std::uint8_t> example;
-        const auto existing = mSave.records();
-        if (!existing.empty()) example = existing.front().raw;
-        const auto record = convertRecord(entry, mSave.game(), example);
+        const auto record = convertRecord(entry, mSave.game(), destinationExample);
         const std::size_t slot = mSave.insert(record, entry.sourceGame != mSave.game());
         try
         {

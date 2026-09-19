@@ -3,6 +3,7 @@
 #define YOKAITITLESELECTSCREEN_HPP
 
 #include "Screen.hpp"
+#include "yokai/YokaiSaveContext.hpp"
 #include "yokai/YokaiTitleSource.hpp"
 #include <filesystem>
 #include <memory>
@@ -35,7 +36,6 @@ private:
     void openSelected();
     [[nodiscard]] std::size_t saveCount(const Group& group) const;
     [[nodiscard]] std::string saveLabel(const Group& group, std::size_t index) const;
-    [[nodiscard]] std::size_t sourceIndex(const Group& group, std::size_t index) const;
     [[nodiscard]] static std::string fullName(yokai::Game game);
 
     std::vector<yokai::title::Location> locations;

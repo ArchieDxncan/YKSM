@@ -156,11 +156,9 @@ namespace yokai
 
     std::optional<std::uint64_t> SaveImage::playTimeSeconds() const
     {
-        // YW1 records elapsed play time as 60 Hz ticks at 0x60. Later games
-        // moved profile data into versioned/obfuscated sections; keep their
-        // display explicit rather than guessing at a look-alike counter.
-        if (mGame == Game::YW1 && mBytes.size() >= 0x64)
-            return static_cast<std::uint64_t>(read32(mBytes, 0x60)) / 60;
+        // No play-time field is currently verified across the supported save
+        // formats. In particular, YW1 offset 0x60 is unrelated profile/world
+        // state, not a 60 Hz play-time counter. Never present it as time.
         return std::nullopt;
     }
 

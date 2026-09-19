@@ -23,7 +23,10 @@ namespace yokai
         [[nodiscard]] bool dirty() const { return mDirty; }
 
         std::uint64_t deposit(std::size_t slot);
+        std::uint64_t deposit(const Record& record);
         std::size_t withdraw(std::uint64_t bankId);
+        std::size_t withdraw(
+            std::uint64_t bankId, std::span<const std::uint8_t> destinationExample);
         void discard();
         void acceptCommitted();
 

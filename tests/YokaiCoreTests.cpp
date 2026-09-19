@@ -41,7 +41,7 @@ namespace
         // after the record area, so a record-area-only buffer is too small.
         std::vector<std::uint8_t> save(38624);
         std::copy_n("Nathan", 6, save.begin() + 0x28);
-        write32(save, 0x60, 60 * 60 * 60);
+        write32(save, 0x60, 60 * 60 * 60); // unrelated world/profile state
         std::copy(record.begin(), record.end(), save.begin() + 0x1D08);
         std::copy_n(record.begin(), 4, save.begin() + 0x73DC);
         return save;
@@ -107,7 +107,7 @@ int main()
     const auto originalRecord = yw1Record(*jibanyan);
     SaveImage save(Game::YW1, yw1Save(originalRecord));
     assert(save.playerName() == "Nathan");
-    assert(save.playTimeSeconds() == 3600);
+    assert(!save.playTimeSeconds());
     auto records = save.records();
     assert(records.size() == 1);
     assert(records[0].slot == 0);
@@ -171,11 +171,12 @@ int main()
     assert(roundTrip.entries()[1].nickname == "Second");
 
     Session session(SaveImage(Game::YW1, yw1Save(originalRecord)), Bank{});
-    const std::uint64_t staged = session.deposit(0);
+    const Record cachedRecord = session.save().records().front();
+    const std::uint64_t staged = session.deposit(cachedRecord);
     assert(session.dirty());
     assert(session.save().records().empty());
     assert(session.bank().size() == 1);
-    assert(session.withdraw(staged) == 0);
+    assert(session.withdraw(staged, cachedRecord.raw) == 0);
     assert(session.save().records().size() == 1);
 
     auto plain = yw1Save(originalRecord);

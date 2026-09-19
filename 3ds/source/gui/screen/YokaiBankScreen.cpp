@@ -3,23 +3,14 @@
 #include "gui.hpp"
 #include "ScreenStack.hpp"
 #include "logging.hpp"
-#include "yokai/Crypto.hpp"
-#include "yokai/SaveImage.hpp"
 #include <algorithm>
+#include <cstdio>
 #include <fstream>
-#include <iterator>
 #include <sstream>
 
 namespace
 {
     constexpr const char* root = "/3ds/YKSM";
-
-    std::vector<std::uint8_t> readFile(const std::filesystem::path& path)
-    {
-        std::ifstream stream(path, std::ios::binary);
-        if (!stream) throw yokai::Error("Could not open " + path.string());
-        return {(std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>()};
-    }
 
     void writeFile(const std::filesystem::path& path, std::span<const std::uint8_t> data)
     {
@@ -30,106 +21,23 @@ namespace
         if (!stream) throw yokai::Error("Could not write " + path.string());
     }
 
-    std::string shortened(std::string value, std::size_t limit)
-    {
-        if (value.size() > limit) value.resize(limit);
-        return value;
-    }
 }
 
-YokaiBankScreen::YokaiBankScreen(
-    yokai::Game initialGame, std::size_t initialSource, bool useInstalledSave)
-    : Screen("D-Pad Choose\nSELECT Change side\nA Transfer\nX Mark\nY Mark all\nL/R Bank page\nSTART Save")
+YokaiBankScreen::YokaiBankScreen(std::shared_ptr<yokai::SaveContext> context)
+    : Screen("D-Pad Choose\nSELECT Change side\nA Transfer\nX Mark\nY Mark all\nL/R Bank page\nSTART Save"),
+      context(std::move(context))
 {
-    installedSaves = yokai::title::discover();
-    activeGame = initialGame;
-    sourceIndex = initialSource;
-    this->useInstalledSave = useInstalledSave;
-    loadGame(activeGame);
-}
-
-std::filesystem::path YokaiBankScreen::savePath(yokai::Game game) const
-{
-    const auto directory = std::filesystem::path(root) / "saves" / std::string(yokai::gameName(game));
-    std::vector<std::filesystem::path> candidates;
-    for (const char* name : {"game1.yw", "game1.yw_g", "game2.yw", "game3.yw", "game.yw"})
+    session = this->context ? &this->context->session : nullptr;
+    if (!this->context)
     {
-        const auto candidate = directory / name;
-        if (std::filesystem::exists(candidate)) candidates.push_back(candidate);
+        status = "No save loaded";
+        return;
     }
-    if (!candidates.empty()) return candidates[sourceIndex % candidates.size()];
-    return directory / "game1.yw";
-}
-
-void YokaiBankScreen::loadGame(yokai::Game game)
-{
-    activeGame = game;
-    activeSavePath = savePath(game);
-    activeInstalledSave.reset();
-    activeOriginalRaw.clear();
-    markedGameSlots.clear();
-    markedBankIds.clear();
-    activeHead.clear();
-    gameSelection = 0;
-    bankSelection = 0;
-    bankPage = 0;
-    try
-    {
-        std::vector<yokai::title::Location> matches;
-        std::copy_if(installedSaves.begin(), installedSaves.end(), std::back_inserter(matches),
-            [game](const auto& location) { return location.game == game; });
-        if (useInstalledSave && !matches.empty())
-            activeInstalledSave = matches[sourceIndex % matches.size()];
-        const auto journal = std::filesystem::path(root) / "pending.commit";
-        const auto bankPath = std::filesystem::path(root) / "bank.ykb";
-        if (std::filesystem::exists(journal))
-        {
-            const auto journalBytes = readFile(journal);
-            const std::filesystem::path pendingSave(std::string(journalBytes.begin(), journalBytes.end()));
-            const auto saveBackup = pendingSave.string() + ".bak";
-            const auto bankBackup = bankPath.string() + ".bak";
-            if (std::filesystem::exists(saveBackup))
-                std::filesystem::copy_file(saveBackup, pendingSave,
-                    std::filesystem::copy_options::overwrite_existing);
-            if (std::filesystem::exists(bankBackup))
-                std::filesystem::copy_file(bankBackup, bankPath,
-                    std::filesystem::copy_options::overwrite_existing);
-            std::filesystem::remove(journal);
-        }
-        const auto raw = activeInstalledSave
-            ? yokai::title::read(*activeInstalledSave, activeInstalledSave->saveFile)
-            : readFile(activeSavePath);
-        activeOriginalRaw = raw;
-        if (game != yokai::Game::YW1)
-        {
-            if (activeInstalledSave)
-                activeHead = yokai::title::read(*activeInstalledSave, activeInstalledSave->headFile);
-            else
-            {
-                const bool moonRabbit = activeSavePath.extension() == ".yw_g";
-                auto headPath = activeSavePath.parent_path() / (moonRabbit ? "head.yw_g" : "head.yw");
-                if (!std::filesystem::exists(headPath))
-                    headPath = activeSavePath.parent_path() / (moonRabbit ? "head.yw" : "head.yw_g");
-                activeHead = readFile(headPath);
-            }
-        }
-        auto decrypted = yokai::crypto::decryptSave(game, raw, activeHead);
-        activeVariant = decrypted.variant;
-        yokai::Bank bank = yokai::Bank::load(bankPath);
-        session = std::make_unique<yokai::Session>(
-            yokai::SaveImage(game, std::move(decrypted.bytes)), std::move(bank));
-        const std::string source = activeInstalledSave ? "installed title " + activeInstalledSave->saveFile
-                                                       : activeSavePath.filename().string();
-        status = "Loaded " + source + " (" +
-            yokai::crypto::variantName(activeVariant) + ")";
-        refresh();
-    }
-    catch (const std::exception& error)
-    {
-        session.reset();
-        gameRows.clear();
-        status = error.what();
-    }
+    activeGame = this->context->source.game;
+    activeSavePath = this->context->source.exported;
+    status = "Loaded " + this->context->sourceLabel + " (" +
+        yokai::crypto::variantName(this->context->variant) + ")";
+    refresh();
 }
 
 void YokaiBankScreen::refresh()
@@ -178,8 +86,9 @@ void YokaiBankScreen::drawTop() const
     const PKSM_Color navy(15, 22, 89, 255);
     Gui::drawSolidRect(0, 0, 400, 240, COLOR_WHITE);
     Gui::drawSolidRect(0, 0, 400, 28, COLOR_HIGHBLUE);
-    const std::string title = "LOCAL BANK  |  Page " + std::to_string(bankPage + 1) + "/" +
-        std::to_string(bankPageCount());
+    char title[48];
+    std::snprintf(title, sizeof(title), "LOCAL BANK  |  Page %lu/%lu",
+        static_cast<unsigned long>(bankPage + 1), static_cast<unsigned long>(bankPageCount()));
     Gui::text(title, 8, 7, FONT_SIZE_14, COLOR_WHITE, TextPosX::LEFT, TextPosY::TOP);
     Gui::text("L", 365, 7, FONT_SIZE_12, COLOR_WHITE, TextPosX::LEFT, TextPosY::TOP);
     Gui::text("R", 385, 7, FONT_SIZE_12, COLOR_WHITE, TextPosX::LEFT, TextPosY::TOP);
@@ -204,12 +113,17 @@ void YokaiBankScreen::drawTop() const
         if (pane == Pane::Bank && index == bankSelection)
             Gui::drawSolidRect(2, y - 2, 396, 19, COLOR_LIGHTBLUE);
         const auto& entry = session->bank().entries()[index];
-        const std::string name = entry.nickname.empty() ? entry.species : entry.nickname;
+        const std::string& name = entry.nickname.empty() ? entry.species : entry.nickname;
         const bool marked = markedBankIds.contains(entry.id);
+        char level[4];
+        char xp[12];
+        std::snprintf(level, sizeof(level), "%u", static_cast<unsigned>(entry.level));
+        std::snprintf(xp, sizeof(xp), "%lu", static_cast<unsigned long>(entry.xp));
         Gui::text(marked ? "[x]" : "[ ]", 6, y, FONT_SIZE_11, COLOR_BLACK, TextPosX::LEFT, TextPosY::TOP);
-        Gui::text(shortened(name, 27), 32, y, FONT_SIZE_11, COLOR_BLACK, TextPosX::LEFT, TextPosY::TOP);
-        Gui::text(std::to_string(entry.level), 260, y, FONT_SIZE_11, COLOR_BLACK, TextPosX::LEFT, TextPosY::TOP);
-        Gui::text(std::to_string(entry.xp), 302, y, FONT_SIZE_11, COLOR_BLACK, TextPosX::LEFT, TextPosY::TOP);
+        Gui::text(name, 32, y, FONT_SIZE_11, COLOR_BLACK, TextPosX::LEFT, TextPosY::TOP,
+            TextWidthAction::SLICE, 215);
+        Gui::text(level, 260, y, FONT_SIZE_11, COLOR_BLACK, TextPosX::LEFT, TextPosY::TOP);
+        Gui::text(xp, 302, y, FONT_SIZE_11, COLOR_BLACK, TextPosX::LEFT, TextPosY::TOP);
     }
     if (session->bank().empty())
         Gui::text("The local bank is empty", 200, 105, FONT_SIZE_15, navy,
@@ -221,7 +135,10 @@ void YokaiBankScreen::drawBottom() const
     const PKSM_Color navy(15, 22, 89, 255);
     Gui::drawSolidRect(0, 0, 320, 240, navy);
     Gui::drawSolidRect(0, 0, 320, 34, COLOR_HIGHBLUE);
-    Gui::text("SAVE YO-KAI  |  " + std::string(yokai::gameName(activeGame)), 160, 9,
+    char saveTitle[40];
+    std::snprintf(saveTitle, sizeof(saveTitle), "SAVE YO-KAI  |  %s",
+        yokai::gameName(activeGame).data());
+    Gui::text(saveTitle, 160, 9,
         FONT_SIZE_14, COLOR_WHITE, TextPosX::CENTER, TextPosY::TOP);
     if (session)
     {
@@ -234,18 +151,20 @@ void YokaiBankScreen::drawBottom() const
             if (pane == Pane::Game && index == gameSelection)
                 Gui::drawSolidRect(3, y - 2, 314, 19, COLOR_LIGHTBLUE);
             const auto& record = gameRows[index];
+            char level[8];
+            std::snprintf(level, sizeof(level), "Lv %u", static_cast<unsigned>(record.level));
             Gui::text(markedGameSlots.contains(record.slot) ? "[x]" : "[ ]", 7, y,
                 FONT_SIZE_9, COLOR_WHITE, TextPosX::LEFT, TextPosY::TOP);
-            Gui::text(shortened(record.displayName(), 22), 33, y, FONT_SIZE_9, COLOR_WHITE,
+            Gui::text(record.displayName(), 33, y, FONT_SIZE_9, COLOR_WHITE,
                 TextPosX::LEFT, TextPosY::TOP, TextWidthAction::SLICE, 185);
-            Gui::text("Lv " + std::to_string(record.level), 231, y, FONT_SIZE_9,
+            Gui::text(level, 231, y, FONT_SIZE_9,
                 COLOR_WHITE, TextPosX::LEFT, TextPosY::TOP);
         }
         if (gameRows.empty())
             Gui::text("No Yo-kai in this save", 160, 102, FONT_SIZE_14, COLOR_WHITE,
                 TextPosX::CENTER, TextPosY::TOP);
     }
-    Gui::text(shortened(status, 48), 8, 185, FONT_SIZE_9, COLOR_WHITE,
+    Gui::text(status, 8, 185, FONT_SIZE_9, COLOR_WHITE,
         TextPosX::LEFT, TextPosY::TOP, TextWidthAction::SQUISH, 304);
     Gui::text(pane == Pane::Game ? "Selected: SAVE" : "Selected: BANK", 8, 203,
         FONT_SIZE_9, COLOR_YELLOW, TextPosX::LEFT, TextPosY::TOP);
@@ -294,11 +213,14 @@ void YokaiBankScreen::transfer()
         {
             if (markedGameSlots.empty() && !gameRows.empty())
                 markedGameSlots.insert(gameRows[gameSelection].slot);
-            const auto selected = markedGameSlots;
-            for (std::size_t slot : selected)
+            std::vector<yokai::Record> selected;
+            selected.reserve(markedGameSlots.size());
+            for (const auto& record : gameRows)
+                if (markedGameSlots.contains(record.slot)) selected.push_back(record);
+            for (const auto& record : selected)
             {
-                Logging::info("YKSM deposit: game {}, slot {}", yokai::gameName(activeGame), slot);
-                session->deposit(slot);
+                Logging::info("YKSM deposit: game {}, slot {}", yokai::gameName(activeGame), record.slot);
+                session->deposit(record);
                 moved++;
             }
             markedGameSlots.clear();
@@ -308,7 +230,13 @@ void YokaiBankScreen::transfer()
             if (markedBankIds.empty() && !session->bank().empty())
                 markedBankIds.insert(session->bank().entries()[bankSelection].id);
             const auto selected = markedBankIds;
-            for (std::uint64_t id : selected) { session->withdraw(id); moved++; }
+            const std::vector<std::uint8_t> example =
+                gameRows.empty() ? std::vector<std::uint8_t>{} : gameRows.front().raw;
+            for (std::uint64_t id : selected)
+            {
+                session->withdraw(id, example);
+                moved++;
+            }
             markedBankIds.clear();
         }
         status = "Staged " + std::to_string(moved) + " transfer(s)";
@@ -317,7 +245,7 @@ void YokaiBankScreen::transfer()
     catch (const std::exception& error)
     {
         status = error.what();
-        Gui::warn(status);
+        Logging::error("YKSM transfer failed: {}", status);
         refresh();
     }
 }
@@ -334,14 +262,14 @@ void YokaiBankScreen::commit()
     {
         Logging::info("YKSM commit: begin for {}", yokai::gameName(activeGame));
         std::filesystem::create_directories(std::filesystem::path(root));
-        if (activeInstalledSave)
+        if (context->source.installed)
         {
             const auto backupDirectory = std::filesystem::path(root) / "backups";
             std::filesystem::create_directories(backupDirectory);
             std::ostringstream name;
-            name << std::hex << activeInstalledSave->titleId << '_' <<
-                std::filesystem::path(activeInstalledSave->saveFile).filename().string() << ".bak";
-            writeFile(backupDirectory / name.str(), activeOriginalRaw);
+            name << std::hex << context->source.installed->titleId << '_' <<
+                std::filesystem::path(context->source.installed->saveFile).filename().string() << ".bak";
+            writeFile(backupDirectory / name.str(), context->originalRaw);
         }
         else
         {
@@ -352,11 +280,11 @@ void YokaiBankScreen::commit()
                 reinterpret_cast<const std::uint8_t*>(journalText.data()), journalText.size()));
         }
         const auto bytes = yokai::crypto::encryptSave(activeGame, session->save().bytes(),
-            activeVariant, activeHead);
+            context->variant, context->head);
         Logging::info("YKSM commit: encrypted {} bytes", bytes.size());
-        if (activeInstalledSave)
+        if (context->source.installed)
         {
-            yokai::title::write(*activeInstalledSave, bytes);
+            yokai::title::write(*context->source.installed, bytes);
             Logging::info("YKSM commit: installed save written");
         }
         else
@@ -367,16 +295,16 @@ void YokaiBankScreen::commit()
         }
         session->bank().saveAtomic(bankPath);
         Logging::info("YKSM commit: bank written with {} entries", session->bank().size());
-        if (!activeInstalledSave) std::filesystem::remove(journal);
-        activeOriginalRaw = bytes;
+        if (!context->source.installed) std::filesystem::remove(journal);
+        context->originalRaw = bytes;
         session->acceptCommitted();
         status = "Saved game and bank";
     }
     catch (const std::exception& error)
     {
-        if (activeInstalledSave && !activeOriginalRaw.empty())
+        if (context->source.installed && !context->originalRaw.empty())
         {
-            try { yokai::title::write(*activeInstalledSave, activeOriginalRaw); }
+            try { yokai::title::write(*context->source.installed, context->originalRaw); }
             catch (const std::exception&) {}
         }
         else if (std::filesystem::exists(saveBackup))
@@ -387,7 +315,7 @@ void YokaiBankScreen::commit()
             std::filesystem::copy_file(bankBackup, bankPath,
                 std::filesystem::copy_options::overwrite_existing);
         status = error.what();
-        Gui::warn("Save failed; game backup restored.\n" + status);
+        Logging::error("YKSM commit failed after backup restore: {}", status);
     }
 }
 

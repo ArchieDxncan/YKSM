@@ -22,6 +22,13 @@ GPLv3 framework components from FlagBrew's PKSM project.
 - CRC-derived section ordering for YW2, YW3, Blasters, and Busters 2
 - Installed SD-title and cartridge discovery through the inherited save-archive layer
 - Automatic `head.yw` / `head.yw_g` matching and multi-slot selection
+- One-load save context shared across the selector, overview, and transfer screens
+- Cached-record batch transfers to avoid repeated full-save parsing on 3DS
+- PKSM TitleLoadScreen/MainMenu-derived selector and save-overview compositions
+
+The YW1 player-name location at `0x28` is verified by the published save dumper. No supported
+format currently has a verified play-time field in the available references. The earlier assumption
+that YW1 offset `0x60` stored 60 Hz play-time ticks was removed because it produced incorrect time.
 
 `.ykbank` migration is intentionally not included. The native bank is the versioned
 `YKB1` file described above.
