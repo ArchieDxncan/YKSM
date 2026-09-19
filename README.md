@@ -1,162 +1,88 @@
-<p align="center"><img src="https://raw.githubusercontent.com/FlagBrew/PKSM/master/assets/banner.png" /></p>
-<p align="center"><img src="https://img.shields.io/badge/License-GPLv3-blue.svg" /></p>
-<p align="center"><img src="https://img.shields.io/github/downloads/FlagBrew/PKSM/total.svg"></p>
+# YKSM
 
-Multipurpose and portable Pokemon save manager and editor for generations I to VIII, programmed in
-C++.
+YKSM is a native Nintendo 3DS save manager and transfer bank for the Yo-kai Watch series.
+It uses a single-column list interface designed for the 3DS screens; it does not use a box grid.
 
-- Supports original cartridges and digital copies of games from FrLgRSE to SwSh
-- Allows on-the-fly modifications to all of your data
-- Allows internal and resizable offline storage to store your Pokémon
-- Capable of running custom scripts to allow injection of arbitrary data into
-  your saves
-- Capable of scanning QR codes to inject both .pkx files or event wondercards
-- Contains an offline wondercard database to get events from old distributions
-- Capable of automatic verification and legalization of all your data (internet connection and local hosting required)
-  - Requires you to run your own [local-gpss](https://github.com/FlagBrew/local-gpss) (or to use one hosted by someone else in the future)
+## Supported games
 
-**We do not support or condone cheating at the expense of others. Do not use
-significantly edited Pokémon in battle or in trades with those who are unaware
-edited Pokémon are in use.**
+- Yo-kai Watch
+- Yo-kai Watch 2: Bony Spirits, Fleshy Souls, and Psychic Specters
+- Yo-kai Watch 3
+- Yo-kai Watch Blasters, including Moon Rabbit Crew save files
+- Yo-kai Watch Busters 2
 
-## Screenshots
+YKSM detects installed SD titles and game cards automatically. It can also load original encrypted
+exports from `/3ds/YKSM/saves/<GAME>/`, including `game1.yw`, `game2.yw`, `game3.yw`, and
+Blasters' `game1.yw_g`. Authenticated saves must be kept beside their matching `head.yw` or
+`head.yw_g`.
 
-![](https://i.imgur.com/HeRfuyl.png) ![](https://i.imgur.com/1GQsSbl.png)
-![](https://i.imgur.com/2nePNbY.png) ![](https://i.imgur.com/nLSknIq.png)
-![](https://i.imgur.com/2G7zbBH.png) ![](https://i.imgur.com/KPMIoHa.png)
-![](https://i.imgur.com/LKnAcHI.png) ![](https://i.imgur.com/NaWoUIa.png)
-![](https://i.imgur.com/0VSTcgA.png) ![](https://i.imgur.com/0g7O9y7.png)
+The local transfer bank is `/3ds/YKSM/bank.ykb`. Before an installed save is changed, a backup is
+written under `/3ds/YKSM/backups`.
 
-## Documentation
+`.ykbank` migration is intentionally not supported.
 
-Please refer to the [PKSM wiki](https://github.com/FlagBrew/PKSM/wiki) for
-detailed documentation.
+## Controls
+
+- D-pad or Circle Pad: move through the active list
+- L/R: switch between the game-save list and local-bank list
+- ZL/ZR: cycle save slots
+- X: mark or unmark the selected Yo-kai
+- Y: mark every Yo-kai in the active list
+- A: stage deposits or withdrawals
+- SELECT: cycle games
+- START: confirm and save staged changes
+- B: discard staged changes, or exit when there are no changes
 
 ## Installation
 
-This software works on CFW and Rosalina-based Homebrew Launchers. An internet
-connection is required when first launching PKSM.
+For a Homebrew Launcher installation, copy `YKSM.3dsx` to `/3ds/YKSM/YKSM.3dsx` on the SD card.
+For a HOME Menu installation, install `YKSM.cia` with a trusted CIA installer.
 
-|  Entrypoint  | Instructions                                                                                                                                                                     |
-| :----------: | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-|     CFW      | Install the `PKSM.cia` file provided in the release page with your favourite installer. You can now launch the application from the Home Menu                                    |
-| Rosalina HBL | Copy the `PKSM.3dsx` file provided in the release page into your SD card. You can now launch PKSM from a [Rosalina-based Homebrew Launcher](https://github.com/fincs/new-hbmenu) |
+Always retain the automatic backup until the edited save has been opened successfully in-game.
 
-Initial launch will require your system to be connected to the internet. This is
-needed to download the additional assets required for the application to launch.
-If your system is not connected to the internet, PKSM will close.
+## GitHub Actions build
 
-## Applications compatible with PKSM
+The included `.github/workflows/build.yml` runs the portable core tests and builds the Nintendo 3DS
+artifacts in devkitPro's `devkitarm` container. It marks the container workspace as a trusted Git
+directory, installs the required 3DS libraries, builds pinned versions of `bannertool`, `makerom`,
+and `3dstool`, and uploads:
 
-- **[PKHeX](https://github.com/kwsch/PKHeX)**: Generates .pk7, .pk6, .wc7, .wc6
-  QR codes scannable from PKSM. Runs on PC.
-- **[MysteryGiftBot](https://twitter.com/mysterygiftbot)**: Generates .wc7 QR
-  codes scannable from PKSM. Runs on Twitter.
-- **[PKSM-Scripts](https://github.com/FlagBrew/PKSM-Scripts)**: A toolkit to
-  develop and compile .pksm and .c scripts.
-- **[Local GPSS](https://github.com/FlagBrew/local-gpss)**: A local hostable version of GPSS with (Auto)Legality functionality
+- `YKSM.3dsx`
+- `YKSM.cia`
+- `YKSM.elf`
 
-## Working path
+Use **Actions → Build YKSM → Run workflow**. The files appear in the `YKSM-3DS` artifact after a
+successful run. No repository secrets are required.
 
-- Additional assets are located at `/3ds/PKSM/assets`
-- Automatic save backups are located at `/3ds/PKSM/backups`
-- Extra storage data is located at `/3ds/PKSM/banks`
-- .pkx and .wcx dumps are located in `/3ds/PKSM/dumps`
-- Custom scripts are located in `/3ds/PKSM/scripts`
-- Custom background songs are located in `/3ds/PKSM/songs`
+## Local tests
 
-## Troubleshooting
+```sh
+make -C tests build/YokaiCoreTests
+./tests/build/YokaiCoreTests
+```
 
-Before submitting an issue, have a look through the [issue tracker](https://github.com/FlagBrew/PKSM/issues), as your
-question or bug request may have already been answered in the past.
+Encrypted backups can be checked without committing personal saves:
 
-Please only submit consistent issues (submitting your environment and which
-version of PKSM you're running, for example). Duplicate issues will be closed.
+```sh
+make -C tests build/YokaiFixtureTests
+./tests/build/YokaiFixtureTests /path/to/extracted/saves
+```
 
-Issues that are opened concerning releases other than the latest stable release will also be closed. Please do not report bugs with old software.
+## Building locally
 
-You can get real-time support by joining FlagBrew's discord server:
+Install devkitARM, libctru, citro2d, citro3d, 3ds-curl, 3ds-bzip2, 3ds-mpg123,
+3ds-pkg-config, 3dstools, tex3ds, bannertool, makerom, and 3dstool. Then run:
 
-[![Discord](https://discordapp.com/api/guilds/278222834633801728/widget.png?style=banner3&time-)](https://discord.gg/bGKEyfY)
+```sh
+make debug -j2
+```
 
-## Building
+## Project lineage and licensing
 
-PKSM has the following dependencies: 
+YKSM is a GPLv3-or-later derivative of FlagBrew's PKSM framework. It retains the upstream copyright,
+license, and attribution notices required by GPLv3 sections 7.b and 7.c. The inherited framework was
+adapted exclusively for Yo-kai Watch save handling; the upstream game-specific startup services,
+asset downloads, databases, documentation, and interface are not part of YKSM's runtime.
 
-> libctru, citro3d, citro2d, 3ds-curl, 3ds-pkg-config, 3ds-bzip2, 3ds-mpg123, 3dstools, tex3ds and the devkitARM toolchain with their dependancies. 
-  
-All of these should be installed from [devKitPro pacman](https://devkitpro.org/wiki/devkitPro_pacman).
-
-  >
-  > | Package         | Tested version       |
-  > | --------------- | -------------------- |
-  > | devkitARM       | r68.1                |
-  > | devkitarm-gcc   | 16.1.0-1             |
-  > | devkitarm-rules | 1.6.0-4              |
-  > | libctru         | 2.7.0-1              |
-  > | citro3d         | 1.7.1-2              |
-  > | citro2d         | 1.7.0-1              |
-  > | 3ds-curl        | 8.4.0-1              |
-  > | 3ds-pkg-config  | 0.28-5               |
-  > | 3ds-bzip2       | 1.0.8-1              |
-  > | 3ds-mpg123      | 1.31.3-3             |
-  > | 3dstools        | 1.3.1-3              |
-  > | tex3ds          | 2.3.0-4              |
-
-- rsync (tested with 3.2.7)
-- Your system's pkg-config (tested with 1.8.1)
-- [3dstool](https://github.com/dnasdw/3dstool/releases),
-  [bannertool](https://github.com/Steveice10/bannertool/releases) and
-  [makerom](https://github.com/profi200/Project_CTR/releases), if you want to be
-  able to compile a `.cia` build of PKSM.
-- Python 3.x (tested with 3.12) and the GitPython library.
-- node.js, [pandoc](https://pandoc.org/), [wkhtmltopdf](https://wkhtmltopdf.org)
-  and
-  [github-wikito-converter](https://www.npmjs.com/package/github-wikito-converter)
-  to be able to build the HTML documentation.
-
-To compile, clone the repository with all submodules (`git clone --recursive
-https://github.com/FlagBrew/PKSM.git` if initially cloning, `git submodule init`
-and `git submodule update` if running from an existing clone) and run `make
-all`.
-
-## Credits
-
-- [Bernardo](https://github.com/BernardoGiordano/) for creating PKSM
-- [piepie62](https://github.com/piepie62) and
-  [Admiral-Fish](https://github.com/Admiral-Fish) for the immense amount of
-  dedication they put into the project
-- dsoldier for the gorgeous graphic work
-- [SpiredMoth](https://github.com/SpiredMoth),
-  [trainboy2019](https://github.com/trainboy2019) and all the scripters for
-  making PKSM-Scripts great
-- [Archit Date](https://github.com/architdate) for CoreConsole and PKHeX AutoLegalityMod
-- [Allen (FM1337/FMCore/Sigkill)](https://github.com/FM1337) for the GPSS (2019-2025), CoreConsole's successor: [CoreAPI](https://github.com/FlagBrew/CoreAPI) and GPSS Mobile (2020-2025) and [Local GPSS](https://github.com/FlagBrew/local-gpss)
-- [LiquidFenrir](https://github.com/LiquidFenrir) for the PoC of session stealing that led to Gen 3 support and GPSS Mobile (2019-2025)
-- The whole [FlagBrew](https://github.com/FlagBrew) team for collaborating with
-  us
-- [kwsch](https://github.com/kwsch) and [SciresM](https://github.com/SciresM)
-  for PKHeX, memecrypto and documentation
-- [fincs](https://github.com/fincs) and
-  [WinterMute](https://github.com/WinterMute) for citro2d and devkitARM
-- [kamronbatman](https://github.com/kamronbatman) and ProjectPokemon.org for
-  EventsGallery
-- [nayuki](https://github.com/nayuki) for [QR-Code-generator](https://github.com/nayuki/QR-Code-generator)
-- [jpoirier](https://github.com/jpoirier), [zsaleeba](https://gitlab.com/zsaleeba), and [Jan Švejda](https://gitlab.com/jenda.svejda) for the base and most improvements in [our picoC fork](https://github.com/FlagBrew/picoc)
-- [dlbeer](https://github.com/dlbeer) for [quirc](https://github.com/dlbeer/quirc)
-- [Griffin](https://github.com/GriffinG1) For FlagBot and all the help it has been on the server.
-- [SNBeast](https://github.com/SNBeast) For Generation 1 and 2 support.
-- All the translators
-- Subject21_J and all the submitters for PKSM's icon
-- Allen, piepie62, SpiredMoth and all the contributors for the documentation
-- All the past contributors to the project
-- All the patrons and the huge amount of supporters that this project has gained
-  over the year
-
-Without you, this project wouldn't have existed. Thank you.
-
-## License
-
-This project is licensed under the GNU GPLv3. Additional Terms 7.b and 7.c of
-GPLv3 apply to this. See
-[LICENSE](https://github.com/FlagBrew/PKSM/blob/master/LICENSE) for details.
+Yo-kai save cryptography and format research derived from `togenyan/yw_save` is MIT licensed. See
+`LICENSE` and `THIRD_PARTY_LICENSES.md`.

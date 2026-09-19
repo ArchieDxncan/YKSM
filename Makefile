@@ -1,13 +1,13 @@
-export PKSM_TITLE		:= 	YoKaiWatchBank
-export PKSM_DESCRIPTION	:=	Yo-kai Watch transfer bank
-export PKSM_AUTHOR		:=	Yo-kai Watch Bank contributors; based on PKSM by FlagBrew
+export YKSM_TITLE		:= 	YKSM
+export YKSM_DESCRIPTION	:=	Yo-kai Watch save manager
+export YKSM_AUTHOR		:=	YKSM contributors; based on PKSM by FlagBrew
 
 export VERSION_MAJOR	:=	0
 export VERSION_MINOR	:=	1
 export VERSION_MICRO	:=	0
 GIT_REV					:=	$(shell git rev-parse --short HEAD)
 OLD_INFO				:=	$(shell if [ -e appinfo.hash ]; then cat appinfo.hash; fi)
-NOW_INFO				:=	$(PKSM_TITLE) $(PKSM_DESCRIPTION) $(PKSM_AUTHOR) $(VERSION_MAJOR) $(VERSION_MINOR) $(VERSION_MICRO) $(GIT_REV)
+NOW_INFO				:=	$(YKSM_TITLE) $(YKSM_DESCRIPTION) $(YKSM_AUTHOR) $(VERSION_MAJOR) $(VERSION_MINOR) $(VERSION_MICRO) $(GIT_REV)
 REVISION_EXISTS			:=	$(shell if [ ! -e common/include/revision.h ]; then echo 1; fi)
 
 OUTDIR			:= 	out
@@ -30,10 +30,6 @@ release: 3ds-release docs
 
 compile-commands: 3ds-compile-commands
 
-no-deps: 3ds-no-deps
-no-scripts: 3ds-no-scripts
-no-gifts: 3ds-no-gifts
-
 revision:
 	@mkdir -p common/include
 ifneq ($(NOW_INFO),$(OLD_INFO))
@@ -54,15 +50,6 @@ endif
 3ds-debug: revision
 	$(MAKE) -C 3ds
 
-3ds-no-deps: revision
-	$(MAKE) -C 3ds no-deps
-
-3ds-no-scripts: revision
-	$(MAKE) -C 3ds no-scripts
-
-3ds-no-gifts: revision
-	$(MAKE) -C 3ds no-gifts
-
 3ds-release: revision
 	$(MAKE) -C 3ds RELEASE="1"
 
@@ -77,17 +64,12 @@ tests:
 
 docs:
 	@mkdir -p $(OUTDIR)
-	@gwtc -o $(OUTDIR) -n "$(PKSM_TITLE) Manual - v$(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_MICRO)" -t "$(APP_TITLE) v$(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_MICRO) Documentation" --logo-img $(ICON) docs/wiki
-	@sed -i 's|\(<img[^>]*src="\)\(\./screenshots\)|\1https://raw.githubusercontent.com/wiki/FlagBrew/PKSM/screenshots|g' $(OUTDIR)/*.html
+	@gwtc -o $(OUTDIR) -n "$(YKSM_TITLE) Manual - v$(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_MICRO)" -t "$(YKSM_TITLE) v$(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_MICRO) Documentation" --logo-img $(ICON) docs/wiki
 
 clean:
 	@rm -f appinfo.hash
 	@rm -f common/include/revision.h
 	$(MAKE) -C 3ds clean
-
-clean-deps:
-	@rm -f assets/gui_strings/*/gui.json
-	$(MAKE) -C 3ds clean-deps
 
 spotless: clean
 	$(MAKE) -C 3ds spotless
@@ -102,4 +84,4 @@ cppcheck:
 cppclean:
 	$(MAKE) -C 3ds cppclean
 
-.PHONY: debug release 3ds-debug no-deps 3ds-release tests docs clean spotless format cppcheck cppclean
+.PHONY: debug release 3ds-debug 3ds-release tests docs clean spotless format cppcheck cppclean

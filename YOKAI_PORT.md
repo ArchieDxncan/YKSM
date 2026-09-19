@@ -1,7 +1,7 @@
 # Yo-kai Watch Bank for Nintendo 3DS
 
-This branch is a list-based Yo-kai transfer bank built on FlagBrew's PKSM
-application framework. It deliberately does not use PKSM's Pokémon box view.
+This branch is a list-based Yo-kai transfer bank for Nintendo 3DS. It uses selected
+GPLv3 framework components from FlagBrew's PKSM project.
 
 ## Implemented foundation
 
@@ -19,7 +19,7 @@ application framework. It deliberately does not use PKSM's Pokémon box view.
 - Generated species and action-game default-move tables
 - Level-5 stream encryption, CRC verification, AES-CCM authentication, and per-title key derivation
 - CRC-derived section ordering for YW2, YW3, Blasters, and Busters 2
-- Installed SD-title and cartridge discovery through PKSM's save-archive layer
+- Installed SD-title and cartridge discovery through the inherited save-archive layer
 - Automatic `head.yw` / `head.yw_g` matching and multi-slot selection
 
 `.ykbank` migration is intentionally not included. The native bank is the versioned
@@ -31,18 +31,18 @@ Installed games and cartridges are detected automatically. As a fallback, export
 saves can be placed at:
 
 ```text
-/3ds/YoKaiWatchBank/saves/YW1/game1.yw
-/3ds/YoKaiWatchBank/saves/YW2/game1.yw
-/3ds/YoKaiWatchBank/saves/YW3/game1.yw
-/3ds/YoKaiWatchBank/saves/BLASTERS/game1.yw
-/3ds/YoKaiWatchBank/saves/BUSTERS2/game1.yw
+/3ds/YKSM/saves/YW1/game1.yw
+/3ds/YKSM/saves/YW2/game1.yw
+/3ds/YKSM/saves/YW3/game1.yw
+/3ds/YKSM/saves/BLASTERS/game1.yw
+/3ds/YKSM/saves/BUSTERS2/game1.yw
 ```
 
 `game2.yw`, `game3.yw`, and Blasters' `game1.yw_g` are also recognized. Keep the
 matching `head.yw` or `head.yw_g` beside every authenticated save. Original encrypted
 files are expected; decrypted editor intermediates are not. The persistent list bank
-is stored at `/3ds/YoKaiWatchBank/bank.ykb`, and installed-save backups are written
-under `/3ds/YoKaiWatchBank/backups` before commits.
+is stored at `/3ds/YKSM/bank.ykb`, and installed-save backups are written
+under `/3ds/YKSM/backups` before commits.
 
 ## Controls
 
@@ -58,7 +58,7 @@ under `/3ds/YoKaiWatchBank/backups` before commits.
 
 ## Build and tests
 
-The 3DS build uses the same devkitARM dependencies as upstream PKSM:
+The 3DS build uses devkitARM and the dependencies documented in `README.md`:
 
 ```sh
 git submodule update --init --recursive
