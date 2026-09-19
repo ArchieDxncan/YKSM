@@ -6,6 +6,7 @@ GPLv3 framework components from FlagBrew's PKSM project.
 ## Implemented foundation
 
 - Single-column, paged Game Save and Local Bank lists
+- Card/installed-title save selector with real system title icons and a manual-save view
 - Controller and touch navigation
 - Multi-select deposit and withdrawal in visible order
 - Staged transfers with save/discard behavior

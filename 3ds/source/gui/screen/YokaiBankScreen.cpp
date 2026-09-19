@@ -1,6 +1,7 @@
 /* GPL-3.0-or-later */
 #include "YokaiBankScreen.hpp"
 #include "gui.hpp"
+#include "ScreenStack.hpp"
 #include "yokai/Crypto.hpp"
 #include "yokai/SaveImage.hpp"
 #include <algorithm>
@@ -35,10 +36,14 @@ namespace
     }
 }
 
-YokaiBankScreen::YokaiBankScreen()
-    : Screen("A Transfer\nX Mark\nY Mark all\nL/R Game or Bank\nZL/ZR Save slot\nSELECT Change game\nSTART Save")
+YokaiBankScreen::YokaiBankScreen(
+    yokai::Game initialGame, std::size_t initialSource, bool useInstalledSave)
+    : Screen("D-Pad Choose\nSELECT Change side\nA Transfer\nX Mark\nY Mark all\nL/R Bank page\nSTART Save")
 {
     installedSaves = yokai::title::discover();
+    activeGame = initialGame;
+    sourceIndex = initialSource;
+    this->useInstalledSave = useInstalledSave;
     loadGame(activeGame);
 }
 
@@ -51,7 +56,7 @@ std::filesystem::path YokaiBankScreen::savePath(yokai::Game game) const
         const auto candidate = directory / name;
         if (std::filesystem::exists(candidate)) candidates.push_back(candidate);
     }
-    if (!candidates.empty()) return candidates[sourceIndex[static_cast<std::size_t>(game)] % candidates.size()];
+    if (!candidates.empty()) return candidates[sourceIndex % candidates.size()];
     return directory / "game1.yw";
 }
 
@@ -64,14 +69,16 @@ void YokaiBankScreen::loadGame(yokai::Game game)
     markedGameSlots.clear();
     markedBankIds.clear();
     activeHead.clear();
-    hid.reset();
+    gameSelection = 0;
+    bankSelection = 0;
+    bankPage = 0;
     try
     {
         std::vector<yokai::title::Location> matches;
         std::copy_if(installedSaves.begin(), installedSaves.end(), std::back_inserter(matches),
             [game](const auto& location) { return location.game == game; });
-        if (!matches.empty())
-            activeInstalledSave = matches[sourceIndex[static_cast<std::size_t>(game)] % matches.size()];
+        if (useInstalledSave && !matches.empty())
+            activeInstalledSave = matches[sourceIndex % matches.size()];
         const auto journal = std::filesystem::path(root) / "pending.commit";
         const auto bankPath = std::filesystem::path(root) / "bank.ykb";
         if (std::filesystem::exists(journal))
@@ -127,7 +134,20 @@ void YokaiBankScreen::loadGame(yokai::Game game)
 void YokaiBankScreen::refresh()
 {
     gameRows = session ? session->save().records() : std::vector<yokai::Record>{};
-    if (visibleCount() && hid.fullIndex() >= visibleCount()) hid.select(visibleCount() - 1, visibleCount());
+    if (gameRows.empty()) gameSelection = 0;
+    else gameSelection = std::min(gameSelection, gameRows.size() - 1);
+    if (!session || session->bank().empty())
+    {
+        bankSelection = 0;
+        bankPage = 0;
+    }
+    else
+    {
+        bankPage = std::min(bankPage, bankPageCount() - 1);
+        const std::size_t first = bankPage * 9;
+        const std::size_t last = first + bankPageSize() - 1;
+        bankSelection = std::clamp(bankSelection, first, last);
+    }
 }
 
 std::size_t YokaiBankScreen::visibleCount() const
@@ -136,13 +156,32 @@ std::size_t YokaiBankScreen::visibleCount() const
     return pane == Pane::Game ? gameRows.size() : session->bank().size();
 }
 
+std::size_t YokaiBankScreen::bankPageCount() const
+{
+    return !session || session->bank().empty() ? 1 : (session->bank().size() + 8) / 9;
+}
+
+std::size_t YokaiBankScreen::bankPageSize() const
+{
+    if (!session || session->bank().empty()) return 0;
+    return std::min<std::size_t>(9, session->bank().size() - bankPage * 9);
+}
+
+std::size_t YokaiBankScreen::selectedIndex() const
+{
+    return pane == Pane::Game ? gameSelection : bankSelection;
+}
+
 void YokaiBankScreen::drawTop() const
 {
+    const PKSM_Color navy(15, 22, 89, 255);
     Gui::drawSolidRect(0, 0, 400, 240, COLOR_WHITE);
     Gui::drawSolidRect(0, 0, 400, 28, COLOR_HIGHBLUE);
-    const std::string title = std::string("Yo-kai Watch Bank  |  ") +
-        (pane == Pane::Game ? "GAME: " : "BANK: ") + std::string(yokai::gameName(activeGame));
+    const std::string title = "LOCAL BANK  |  Page " + std::to_string(bankPage + 1) + "/" +
+        std::to_string(bankPageCount());
     Gui::text(title, 8, 7, FONT_SIZE_14, COLOR_WHITE, TextPosX::LEFT, TextPosY::TOP);
+    Gui::text("L", 365, 7, FONT_SIZE_12, COLOR_WHITE, TextPosX::LEFT, TextPosY::TOP);
+    Gui::text("R", 385, 7, FONT_SIZE_12, COLOR_WHITE, TextPosX::LEFT, TextPosY::TOP);
     Gui::text("Yo-kai", 32, 33, FONT_SIZE_11, COLOR_DARKGREY, TextPosX::LEFT, TextPosY::TOP);
     Gui::text("Lv", 258, 33, FONT_SIZE_11, COLOR_DARKGREY, TextPosX::LEFT, TextPosY::TOP);
     Gui::text("XP", 302, 33, FONT_SIZE_11, COLOR_DARKGREY, TextPosX::LEFT, TextPosY::TOP);
@@ -155,65 +194,68 @@ void YokaiBankScreen::drawTop() const
         return;
     }
 
-    const std::size_t start = hid.page() * hid.maxVisibleEntries();
-    for (std::size_t row = 0; row < hid.maxVisibleEntries(); row++)
+    const std::size_t start = bankPage * 9;
+    for (std::size_t row = 0; row < 9; row++)
     {
         const std::size_t index = start + row;
-        if (index >= visibleCount()) break;
+        if (index >= session->bank().size()) break;
         const int y = 49 + row * 20;
-        if (row == hid.index()) Gui::drawSolidRect(2, y - 2, 396, 19, COLOR_LIGHTBLUE);
-        std::string name;
-        std::uint8_t level;
-        std::uint32_t xp;
-        bool marked;
-        if (pane == Pane::Game)
-        {
-            const auto& record = gameRows[index];
-            name = record.displayName(); level = record.level; xp = record.xp;
-            marked = markedGameSlots.contains(record.slot);
-        }
-        else
-        {
-            const auto& entry = session->bank().entries()[index];
-            name = entry.nickname.empty() ? entry.species : entry.nickname;
-            level = entry.level; xp = entry.xp;
-            marked = markedBankIds.contains(entry.id);
-        }
+        if (pane == Pane::Bank && index == bankSelection)
+            Gui::drawSolidRect(2, y - 2, 396, 19, COLOR_LIGHTBLUE);
+        const auto& entry = session->bank().entries()[index];
+        const std::string name = entry.nickname.empty() ? entry.species : entry.nickname;
+        const bool marked = markedBankIds.contains(entry.id);
         Gui::text(marked ? "[x]" : "[ ]", 6, y, FONT_SIZE_11, COLOR_BLACK, TextPosX::LEFT, TextPosY::TOP);
         Gui::text(shortened(name, 27), 32, y, FONT_SIZE_11, COLOR_BLACK, TextPosX::LEFT, TextPosY::TOP);
-        Gui::text(std::to_string(level), 260, y, FONT_SIZE_11, COLOR_BLACK, TextPosX::LEFT, TextPosY::TOP);
-        Gui::text(std::to_string(xp), 302, y, FONT_SIZE_11, COLOR_BLACK, TextPosX::LEFT, TextPosY::TOP);
+        Gui::text(std::to_string(entry.level), 260, y, FONT_SIZE_11, COLOR_BLACK, TextPosX::LEFT, TextPosY::TOP);
+        Gui::text(std::to_string(entry.xp), 302, y, FONT_SIZE_11, COLOR_BLACK, TextPosX::LEFT, TextPosY::TOP);
     }
+    if (session->bank().empty())
+        Gui::text("The local bank is empty", 200, 105, FONT_SIZE_15, navy,
+            TextPosX::CENTER, TextPosY::TOP);
 }
 
 void YokaiBankScreen::drawBottom() const
 {
-    Gui::drawSolidRect(0, 0, 320, 240, COLOR_MASKBLACK);
+    const PKSM_Color navy(15, 22, 89, 255);
+    Gui::drawSolidRect(0, 0, 320, 240, navy);
     Gui::drawSolidRect(0, 0, 320, 34, COLOR_HIGHBLUE);
-    Gui::text(pane == Pane::Game ? "GAME SAVE LIST" : "LOCAL BANK LIST", 160, 9,
+    Gui::text("SAVE YO-KAI  |  " + std::string(yokai::gameName(activeGame)), 160, 9,
         FONT_SIZE_14, COLOR_WHITE, TextPosX::CENTER, TextPosY::TOP);
     if (session)
     {
-        Gui::text("Game: " + std::to_string(gameRows.size()) + "   Bank: " +
-                std::to_string(session->bank().size()),
-            12, 50, FONT_SIZE_12, COLOR_WHITE, TextPosX::LEFT, TextPosY::TOP);
-        Gui::text(session->dirty() ? "UNSAVED CHANGES" : "No pending changes", 12, 72,
-            FONT_SIZE_12, session->dirty() ? COLOR_YELLOW : COLOR_LIGHTBLUE,
-            TextPosX::LEFT, TextPosY::TOP);
+        const std::size_t start = gameSelection / 7 * 7;
+        for (std::size_t row = 0; row < 7; row++)
+        {
+            const std::size_t index = start + row;
+            if (index >= gameRows.size()) break;
+            const int y = 42 + static_cast<int>(row) * 20;
+            if (pane == Pane::Game && index == gameSelection)
+                Gui::drawSolidRect(3, y - 2, 314, 19, COLOR_LIGHTBLUE);
+            const auto& record = gameRows[index];
+            Gui::text(markedGameSlots.contains(record.slot) ? "[x]" : "[ ]", 7, y,
+                FONT_SIZE_9, COLOR_WHITE, TextPosX::LEFT, TextPosY::TOP);
+            Gui::text(shortened(record.displayName(), 22), 33, y, FONT_SIZE_9, COLOR_WHITE,
+                TextPosX::LEFT, TextPosY::TOP, TextWidthAction::SLICE, 185);
+            Gui::text("Lv " + std::to_string(record.level), 231, y, FONT_SIZE_9,
+                COLOR_WHITE, TextPosX::LEFT, TextPosY::TOP);
+        }
+        if (gameRows.empty())
+            Gui::text("No Yo-kai in this save", 160, 102, FONT_SIZE_14, COLOR_WHITE,
+                TextPosX::CENTER, TextPosY::TOP);
     }
-    Gui::text(shortened(status, 45), 12, 102, FONT_SIZE_9, COLOR_WHITE, TextPosX::LEFT, TextPosY::TOP);
-    Gui::drawSolidRect(12, 150, 142, 34, pane == Pane::Game ? COLOR_HIGHBLUE : COLOR_DARKGREY);
-    Gui::drawSolidRect(166, 150, 142, 34, pane == Pane::Bank ? COLOR_HIGHBLUE : COLOR_DARKGREY);
-    Gui::text("Game", 83, 160, FONT_SIZE_12, COLOR_WHITE, TextPosX::CENTER, TextPosY::TOP);
-    Gui::text("Bank", 237, 160, FONT_SIZE_12, COLOR_WHITE, TextPosX::CENTER, TextPosY::TOP);
-    Gui::text("A Transfer   X Mark   Y All   START Save", 160, 211,
+    Gui::text(shortened(status, 48), 8, 185, FONT_SIZE_9, COLOR_WHITE,
+        TextPosX::LEFT, TextPosY::TOP, TextWidthAction::SQUISH, 304);
+    Gui::text(pane == Pane::Game ? "Selected: SAVE" : "Selected: BANK", 8, 203,
+        FONT_SIZE_9, COLOR_YELLOW, TextPosX::LEFT, TextPosY::TOP);
+    Gui::text("SELECT Side  A Transfer  L/R Bank page", 160, 222,
         FONT_SIZE_9, COLOR_WHITE, TextPosX::CENTER, TextPosY::TOP);
 }
 
 void YokaiBankScreen::toggleSelected()
 {
     if (!session || visibleCount() == 0) return;
-    const std::size_t index = hid.fullIndex();
+    const std::size_t index = selectedIndex();
     if (pane == Pane::Game)
     {
         const std::size_t slot = gameRows[index].slot;
@@ -249,7 +291,8 @@ void YokaiBankScreen::transfer()
         std::size_t moved = 0;
         if (pane == Pane::Game)
         {
-            if (markedGameSlots.empty() && !gameRows.empty()) markedGameSlots.insert(gameRows[hid.fullIndex()].slot);
+            if (markedGameSlots.empty() && !gameRows.empty())
+                markedGameSlots.insert(gameRows[gameSelection].slot);
             const auto selected = markedGameSlots;
             for (std::size_t slot : selected) { session->deposit(slot); moved++; }
             markedGameSlots.clear();
@@ -257,7 +300,7 @@ void YokaiBankScreen::transfer()
         else
         {
             if (markedBankIds.empty() && !session->bank().empty())
-                markedBankIds.insert(session->bank().entries()[hid.fullIndex()].id);
+                markedBankIds.insert(session->bank().entries()[bankSelection].id);
             const auto selected = markedBankIds;
             for (std::uint64_t id : selected) { session->withdraw(id); moved++; }
             markedBankIds.clear();
@@ -346,41 +389,41 @@ void YokaiBankScreen::discard()
     refresh();
 }
 
-void YokaiBankScreen::cycleGame()
-{
-    if (session && session->dirty())
-    {
-        status = "Save or discard changes before switching games";
-        return;
-    }
-    const int next = (static_cast<int>(activeGame) + 1) % 5;
-    loadGame(static_cast<yokai::Game>(next));
-}
-
-void YokaiBankScreen::cycleSave(int direction)
-{
-    if (session && session->dirty())
-    {
-        status = "Save or discard changes before switching save slots";
-        return;
-    }
-    auto& index = sourceIndex[static_cast<std::size_t>(activeGame)];
-    if (direction < 0 && index == 0) index = 4;
-    else index = (index + direction + 5) % 5;
-    loadGame(activeGame);
-}
-
 void YokaiBankScreen::update(touchPosition* touch)
 {
     const u32 down = hidKeysDown();
-    if (down & (KEY_L | KEY_R))
+    if (down & KEY_SELECT) pane = pane == Pane::Game ? Pane::Bank : Pane::Game;
+    if (down & KEY_L)
     {
-        pane = pane == Pane::Game ? Pane::Bank : Pane::Game;
-        hid.reset();
+        bankPage = bankPage == 0 ? bankPageCount() - 1 : bankPage - 1;
+        bankSelection = bankPage * 9;
+        pane = Pane::Bank;
     }
-    if (down & KEY_SELECT) cycleGame();
-    if (down & KEY_ZL) cycleSave(-1);
-    if (down & KEY_ZR) cycleSave(1);
+    if (down & KEY_R)
+    {
+        bankPage = (bankPage + 1) % bankPageCount();
+        bankSelection = bankPage * 9;
+        pane = Pane::Bank;
+    }
+    if (down & KEY_UP && visibleCount())
+    {
+        if (pane == Pane::Game)
+            gameSelection = gameSelection == 0 ? gameRows.size() - 1 : gameSelection - 1;
+        else
+        {
+            const std::size_t first = bankPage * 9;
+            bankSelection = bankSelection == first ? first + bankPageSize() - 1 : bankSelection - 1;
+        }
+    }
+    if (down & KEY_DOWN && visibleCount())
+    {
+        if (pane == Pane::Game) gameSelection = (gameSelection + 1) % gameRows.size();
+        else
+        {
+            const std::size_t first = bankPage * 9;
+            bankSelection = first + (bankSelection - first + 1) % bankPageSize();
+        }
+    }
     if (down & KEY_X) toggleSelected();
     if (down & KEY_Y) selectAll();
     if (down & KEY_A) transfer();
@@ -388,15 +431,19 @@ void YokaiBankScreen::update(touchPosition* touch)
     if (down & KEY_B)
     {
         if (session && session->dirty()) discard();
-        else Gui::exitMainLoop();
+        else ScreenStack::requestPop();
     }
     if (touch && (down & KEY_TOUCH))
     {
-        if (touch->py >= 150 && touch->py <= 184)
+        if (touch->py >= 38 && touch->py < 180)
         {
-            pane = touch->px < 160 ? Pane::Game : Pane::Bank;
-            hid.reset();
+            const std::size_t row = (touch->py - 38) / 20;
+            const std::size_t index = gameSelection / 7 * 7 + row;
+            if (index < gameRows.size())
+            {
+                gameSelection = index;
+                pane = Pane::Game;
+            }
         }
     }
-    if (visibleCount()) hid.update(visibleCount());
 }

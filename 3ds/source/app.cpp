@@ -9,7 +9,7 @@
 #include "ScreenStack.hpp"
 #include "Subsystems.hpp"
 #include "thread.hpp"
-#include "YokaiBankScreen.hpp"
+#include "YokaiTitleSelectScreen.hpp"
 #include "utils/logging.hpp"
 #include <3ds.h>
 #include <memory>
@@ -57,7 +57,7 @@ Result App::init(const std::string& execPath)
     gfxSetDoubleBuffering(GFX_BOTTOM, true);
     gfxSwapBuffersGpu();
     gspWaitForVBlank();
-    ScreenStack::push(std::make_unique<YokaiBankScreen>());
+    ScreenStack::push(std::make_unique<YokaiTitleSelectScreen>());
     return 0;
 }
 

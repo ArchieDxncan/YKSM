@@ -23,15 +23,32 @@ written under `/3ds/YKSM/backups`.
 
 ## Controls
 
-- D-pad or Circle Pad: move through the active list
-- L/R: switch between the game-save list and local-bank list
-- ZL/ZR: cycle save slots
+Save-selection screen:
+
+- Left/Right: choose a game card or installed title
+- Up/Down: choose one of that title's save files
+- A: open the selected save
+- Y: switch between installed titles and manually exported saves
+- START: exit
+
+Save overview:
+
+- The top screen shows the save's player name and play-time field (decoded for Yo-kai Watch 1;
+  later formats currently show a clear fallback until their regional profile layouts are verified)
+- A or tapping **Yo-Kai** opens the transfer lists
+- B: return to save selection
+
+Transfer lists:
+
+- Top screen: local bank; bottom screen: the opened save's Yo-kai
+- Up/Down: move through the selected list
+- SELECT: switch selection between the save and bank lists
+- L/R: change local-bank pages
 - X: mark or unmark the selected Yo-kai
 - Y: mark every Yo-kai in the active list
 - A: stage deposits or withdrawals
-- SELECT: cycle games
 - START: confirm and save staged changes
-- B: discard staged changes, or exit when there are no changes
+- B: discard staged changes, or return to the save overview when there are no changes
 
 ## Installation
 
