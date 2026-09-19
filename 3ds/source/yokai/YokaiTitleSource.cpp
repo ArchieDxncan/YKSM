@@ -106,8 +106,10 @@ namespace yokai::title
         if (R_FAILED(file->resize(data.size()))) throw Error("Could not resize the installed game's save file");
         file->seek(0, SEEK_SET);
         if (file->write(data.data(), data.size()) != data.size()) throw Error("Could not write the installed game's save file");
+        // Close the file exactly once before committing its archive. File and
+        // Archive are RAII types, so reset/close must be idempotent.
+        file.reset();
         if (R_FAILED(archive.commit())) throw Error("Could not commit the installed game's save archive");
-        file->close();
         archive.close();
 
         if (location.media == MEDIATYPE_SD)

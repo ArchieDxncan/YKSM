@@ -618,14 +618,18 @@ Archive Archive::extdata(u32 extdata, bool pxi)
 
 Result Archive::close()
 {
+    if (!mHandle) return mResult;
+    Result result;
     if (mPXI)
     {
-        return mResult = FSPXI_CloseArchive(fspxiHandle, mHandle);
+        result = FSPXI_CloseArchive(fspxiHandle, mHandle);
     }
     else
     {
-        return mResult = FSUSER_CloseArchive(mHandle);
+        result = FSUSER_CloseArchive(mHandle);
     }
+    mHandle = 0;
+    return mResult = result;
 }
 
 Result Archive::commit()

@@ -79,7 +79,9 @@ $(BUILD)/YokaiCoreTests: YokaiCoreTests.cpp \
 
 $(BUILD)/YokaiFixtureTests: YokaiFixtureTests.cpp \
 		../common/source/yokai/Yokai.cpp ../common/source/yokai/Species.cpp \
-		../common/source/yokai/SaveImage.cpp ../common/source/yokai/Crypto.cpp \
+		../common/source/yokai/SaveImage.cpp ../common/source/yokai/YokaiBank.cpp \
+		../common/source/yokai/Transfer.cpp ../common/source/yokai/Session.cpp \
+		../common/source/yokai/Crypto.cpp \
 		$(BUILD)/aes.o | $(BUILD)
 	@$(CXX) $(CXXFLAGS) $(INCLUDE) -o $@ $^
 

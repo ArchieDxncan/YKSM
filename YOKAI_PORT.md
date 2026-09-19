@@ -47,15 +47,15 @@ under `/3ds/YKSM/backups` before commits.
 
 ## Controls
 
-- D-pad/Circle Pad: move through the active list
-- L/R: switch between Game Save and Local Bank
-- ZL/ZR: cycle save slots
+- Top screen: Local Bank; bottom screen: the opened save's Yo-kai
+- Up/Down: move through the selected list
+- SELECT: switch selection between the save and bank lists
+- L/R: change Local Bank pages
 - X: mark/unmark one entry
 - Y: mark all entries in the active list
 - A: deposit/withdraw marked entries
-- SELECT: cycle the active game
 - START: commit the staged game and bank
-- B: discard staged changes; exit when clean
+- B: discard staged changes; return to the save overview when clean
 
 ## Build and tests
 
@@ -90,6 +90,8 @@ python3 tools/generate_yokai_tables.py
 ## Attribution and licensing
 
 This derivative is GPLv3-or-later and retains PKSM's required notices and
-attribution. Yo-kai save cryptography and format research derived from
-`togenyan/yw_save` remains under its MIT license; see
-`THIRD_PARTY_LICENSES.md` in the supplied desktop project.
+attribution. [`ArchieDxncan/ykw-bank`](https://github.com/ArchieDxncan/ykw-bank)
+is the primary desktop behavioral and save-layout reference for the port,
+including staged transfers and YW1's signed species-ID representation.
+Yo-kai save cryptography and format research derived from `togenyan/yw_save`
+remains under its MIT license; see `THIRD_PARTY_LICENSES.md`.

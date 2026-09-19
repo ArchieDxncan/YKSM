@@ -40,14 +40,19 @@ File::File(FSPXI_File handle) : mHandle(handle), mOffset(0)
 
 Result File::close(void)
 {
+    if (mClosed) return mResult;
+    Result result = -1;
     switch (mHandle.index())
     {
         case 0:
-            return mResult = FSFILE_Close(std::get<0>(mHandle));
+            result = FSFILE_Close(std::get<0>(mHandle));
+            break;
         case 1:
-            return mResult = FSPXI_CloseFile(fspxiHandle, std::get<1>(mHandle));
+            result = FSPXI_CloseFile(fspxiHandle, std::get<1>(mHandle));
+            break;
     }
-    return -1; // Cannot happen
+    mClosed = true;
+    return mResult = result;
 }
 
 Result File::result(void) const

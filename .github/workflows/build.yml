@@ -74,4 +74,5 @@ jobs:
             3ds/out/YKSM.3dsx
             3ds/out/YKSM.cia
             3ds/out/YKSM.elf
+            3ds/build/YKSM.map
           if-no-files-found: error

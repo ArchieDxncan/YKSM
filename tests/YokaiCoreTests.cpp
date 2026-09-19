@@ -37,7 +37,9 @@ namespace
 
     std::vector<std::uint8_t> yw1Save(const std::vector<std::uint8_t>& record)
     {
-        std::vector<std::uint8_t> save(0x1D08 + 240 * 0x5C);
+        // Real decrypted YW1 saves are 38,624 bytes. The index table begins
+        // after the record area, so a record-area-only buffer is too small.
+        std::vector<std::uint8_t> save(38624);
         std::copy_n("Nathan", 6, save.begin() + 0x28);
         write32(save, 0x60, 60 * 60 * 60);
         std::copy(record.begin(), record.end(), save.begin() + 0x1D08);
@@ -202,6 +204,20 @@ int main()
     session.discard();
     assert(!session.dirty());
     assert(session.save().records().size() == 1);
+
+    // YW1 stores species IDs as signed 32-bit values. Rubinyan's native ID
+    // is negative when interpreted as signed, so exercise the complete
+    // unsigned parse -> staged deposit -> bank encode/decode path.
+    constexpr std::uint32_t rubinyanId = 2474863454U; // signed: -1820103842
+    assert(speciesName(Game::YW1, rubinyanId) == "Rubinyan");
+    const auto rubinyanRecord = yw1Record(rubinyanId);
+    Session rubinyanSession(SaveImage(Game::YW1, yw1Save(rubinyanRecord)), Bank{});
+    const auto rubinyanBankId = rubinyanSession.deposit(0);
+    assert(rubinyanSession.save().records().empty());
+    assert(rubinyanSession.bank().find(rubinyanBankId));
+    const auto rubinyanBank = Bank::decode(rubinyanSession.bank().encode());
+    assert(rubinyanBank.find(rubinyanBankId));
+    assert(rubinyanBank.find(rubinyanBankId)->species == "Rubinyan");
 
     std::cout << "Yo-kai core tests passed\n";
 }

@@ -1,5 +1,6 @@
 #include "yokai/Crypto.hpp"
 #include "yokai/SaveImage.hpp"
+#include "yokai/Session.hpp"
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -36,6 +37,7 @@ int main(int argc, char** argv)
     }
     const fs::path root = argv[1];
     std::size_t tested = 0;
+    std::size_t rubinyanTested = 0;
     try
     {
         for (const auto& entry : fs::recursive_directory_iterator(root))
@@ -66,6 +68,18 @@ int main(int argc, char** argv)
             if (second.bytes != decrypted.bytes)
                 throw std::runtime_error("Decrypt-after-encrypt failed for " + entry.path().string());
             const auto originalRecords = image.records();
+            for (const auto& record : originalRecords)
+            {
+                if (*game != yokai::Game::YW1 || record.species != "Rubinyan") continue;
+                yokai::Session transferProbe(
+                    yokai::SaveImage(*game, decrypted.bytes), yokai::Bank{});
+                const auto id = transferProbe.deposit(record.slot);
+                const auto bank = yokai::Bank::decode(transferProbe.bank().encode());
+                if (!bank.find(id) || bank.find(id)->species != "Rubinyan")
+                    throw std::runtime_error("Rubinyan bank round trip failed for " +
+                                             entry.path().string());
+                rubinyanTested++;
+            }
             if (!originalRecords.empty())
             {
                 yokai::SaveImage edited(*game, decrypted.bytes);
@@ -92,5 +106,6 @@ int main(int argc, char** argv)
         std::cerr << "No fixtures were found\n";
         return 1;
     }
-    std::cout << "Validated " << tested << " encrypted save fixtures\n";
+    std::cout << "Validated " << tested << " encrypted save fixtures and " << rubinyanTested
+              << " YW1 Rubinyan bank transfers\n";
 }

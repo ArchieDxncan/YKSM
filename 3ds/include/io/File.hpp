@@ -63,6 +63,7 @@ private:
     u64 mSize;
     u64 mOffset;
     Result mResult;
+    bool mClosed = false;
 };
 
 #endif

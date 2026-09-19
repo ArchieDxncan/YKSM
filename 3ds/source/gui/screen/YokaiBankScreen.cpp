@@ -2,6 +2,7 @@
 #include "YokaiBankScreen.hpp"
 #include "gui.hpp"
 #include "ScreenStack.hpp"
+#include "logging.hpp"
 #include "yokai/Crypto.hpp"
 #include "yokai/SaveImage.hpp"
 #include <algorithm>
@@ -294,7 +295,12 @@ void YokaiBankScreen::transfer()
             if (markedGameSlots.empty() && !gameRows.empty())
                 markedGameSlots.insert(gameRows[gameSelection].slot);
             const auto selected = markedGameSlots;
-            for (std::size_t slot : selected) { session->deposit(slot); moved++; }
+            for (std::size_t slot : selected)
+            {
+                Logging::info("YKSM deposit: game {}, slot {}", yokai::gameName(activeGame), slot);
+                session->deposit(slot);
+                moved++;
+            }
             markedGameSlots.clear();
         }
         else
@@ -326,6 +332,7 @@ void YokaiBankScreen::commit()
     const auto journal = std::filesystem::path(root) / "pending.commit";
     try
     {
+        Logging::info("YKSM commit: begin for {}", yokai::gameName(activeGame));
         std::filesystem::create_directories(std::filesystem::path(root));
         if (activeInstalledSave)
         {
@@ -346,8 +353,12 @@ void YokaiBankScreen::commit()
         }
         const auto bytes = yokai::crypto::encryptSave(activeGame, session->save().bytes(),
             activeVariant, activeHead);
+        Logging::info("YKSM commit: encrypted {} bytes", bytes.size());
         if (activeInstalledSave)
+        {
             yokai::title::write(*activeInstalledSave, bytes);
+            Logging::info("YKSM commit: installed save written");
+        }
         else
         {
             writeFile(saveTemporary, bytes);
@@ -355,6 +366,7 @@ void YokaiBankScreen::commit()
             std::filesystem::rename(saveTemporary, activeSavePath);
         }
         session->bank().saveAtomic(bankPath);
+        Logging::info("YKSM commit: bank written with {} entries", session->bank().size());
         if (!activeInstalledSave) std::filesystem::remove(journal);
         activeOriginalRaw = bytes;
         session->acceptCommitted();

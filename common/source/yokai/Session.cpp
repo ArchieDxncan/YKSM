@@ -16,18 +16,22 @@ namespace yokai
         const auto found = std::find_if(records.begin(), records.end(),
             [slot](const Record& record) { return record.slot == slot; });
         if (found == records.end()) throw Error("Selected save entry was not found");
+        // Own the selected record before mutating the save. This mirrors
+        // ArchieDxncan/ykw-bank's staged-transfer model and prevents any
+        // view/iterator into a parsed record list from surviving mutation.
+        const Record selected = *found;
         // Mutate the save first. If its stale-record guard rejects the change,
         // no bank entry has been added.
-        mSave.remove(slot, found->raw);
+        mSave.remove(slot, selected.raw);
         try
         {
-            const std::uint64_t id = mBank.append(mSave.game(), *found).id;
+            const std::uint64_t id = mBank.append(mSave.game(), selected).id;
             mDirty = true;
             return id;
         }
         catch (...)
         {
-            mSave.insert(found->raw);
+            mSave.insert(selected.raw);
             throw;
         }
     }

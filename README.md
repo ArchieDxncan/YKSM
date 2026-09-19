@@ -103,3 +103,8 @@ asset downloads, databases, documentation, and interface are not part of YKSM's 
 
 Yo-kai save cryptography and format research derived from `togenyan/yw_save` is MIT licensed. See
 `LICENSE` and `THIRD_PARTY_LICENSES.md`.
+
+The desktop behavior, staged-transfer model, YW1 signed species IDs, record offsets, and regression
+expectations are cross-checked against
+[`ArchieDxncan/ykw-bank`](https://github.com/ArchieDxncan/ykw-bank), the primary behavioral reference
+for this 3DS port.
