@@ -145,6 +145,18 @@ namespace yokai
         return false;
     }
 
+    bool SaveImage::isPartySlot(std::size_t slot) const
+    {
+        // The main-series games keep the six active members at the start of
+        // the Yo-kai array. YW1 fixtures containing only a party consistently
+        // occupy slots 0-5; erasing one creates a hole that the game's Change
+        // Members screen renders as an apparent duplicate. The action games
+        // use four-member squads in the same leading positions.
+        const std::size_t partySize =
+            mGame == Game::Blasters || mGame == Game::Busters2 ? 4 : 6;
+        return slot < partySize;
+    }
+
     std::string SaveImage::playerName() const
     {
         // The published YW1 save dumper identifies the player-name field at

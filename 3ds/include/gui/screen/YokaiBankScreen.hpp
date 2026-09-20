@@ -21,10 +21,12 @@ public:
 
 private:
     enum class Pane { Game, Bank };
+    enum class SortMode { Original, Name, Level };
 
     void refresh();
+    void applySort();
+    void sortActive();
     void toggleSelected();
-    void selectAll();
     void transfer();
     void commit();
     void discard();
@@ -32,14 +34,20 @@ private:
     [[nodiscard]] std::size_t bankPageCount() const;
     [[nodiscard]] std::size_t bankPageSize() const;
     [[nodiscard]] std::size_t selectedIndex() const;
+    [[nodiscard]] const yokai::BankEntry* bankEntry(std::size_t viewIndex) const;
 
     std::shared_ptr<yokai::SaveContext> context;
     yokai::Session* session = nullptr;
     std::vector<yokai::Record> gameRows;
+    std::vector<std::size_t> bankRows;
     std::set<std::size_t> markedGameSlots;
     std::set<std::uint64_t> markedBankIds;
     yokai::Game activeGame = yokai::Game::YW1;
     Pane pane = Pane::Game;
+    SortMode gameSort = SortMode::Original;
+    SortMode bankSort = SortMode::Original;
+    bool menuOpen = false;
+    std::size_t menuSelection = 0;
     std::size_t gameSelection = 0;
     std::size_t bankSelection = 0;
     std::size_t bankPage = 0;

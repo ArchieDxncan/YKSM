@@ -59,11 +59,13 @@ under `/3ds/YKSM/backups` before commits.
 - Up/Down: move through the selected list
 - SELECT: switch selection between the save and bank lists
 - L/R: change Local Bank pages
-- X: mark/unmark one entry
-- Y: mark all entries in the active list
-- A: deposit/withdraw marked entries
-- START: commit the staged game and bank
+- Y: cycle name, level, and original-order sorting
+- X: confirm and commit the staged game and bank
+- A: open the Mark/Move menu
 - B: discard staged changes; return to the save overview when clean
+
+Depositing an active-party member is rejected. Move it to a reserve slot in-game first so the
+party layout never contains a dangling entry.
 
 ## Build and tests
 

@@ -48,11 +48,13 @@ Transfer lists:
 - Up/Down: move through the selected list
 - SELECT: switch selection between the save and bank lists
 - L/R: change local-bank pages
-- X: mark or unmark the selected Yo-kai
-- Y: mark every Yo-kai in the active list
-- A: stage deposits or withdrawals
-- START: confirm and save staged changes
+- Y: cycle the active list through name, level, and original-order sorting
+- X: confirm and save staged changes
+- A: open the **Mark / Move** menu
 - B: discard staged changes, or return to the save overview when there are no changes
+
+Active-party Yo-kai cannot be deposited. Move them to a reserve slot in-game first; this prevents
+the game's party list from retaining a reference to a removed record and displaying a duplicate.
 
 ## Installation
 

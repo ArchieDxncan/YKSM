@@ -1,0 +1,23 @@
+diff --git a/source/i18n/i18n.cpp b/source/i18n/i18n.cpp
+index d7d5206..3663f1a 100644
+--- a/source/i18n/i18n.cpp
++++ b/source/i18n/i18n.cpp
+@@ -66,12 +66,12 @@ namespace i18n
+         });
+ #endif
+ 
+-    std::list<initCallback> initCallbacks = {initAbility, initBall, initDonut, initForm, initGame,
+-        initGeo, initType, initItem, initItem1, initItem2, initItem3, initLocation, initMove,
+-        initNature, initRibbon, initSpecies};
+-    std::list<exitCallback> exitCallbacks = {exitAbility, exitBall, exitDonut, exitForm, exitGame,
+-        exitGeo, exitType, exitItem, exitItem1, exitItem2, exitItem3, exitLocation, exitMove,
+-        exitNature, exitRibbon, exitSpecies};
++    // YKSM ships no PKSM Pokemon databases. Loading the inherited tables on the
++    // first modal dialog used to dereference a missing items3 resource and abort
++    // on ARM11. Keep the generic callback mechanism for explicitly registered
++    // YKSM resources, but do not initialize any Pokemon tables by default.
++    std::list<initCallback> initCallbacks;
++    std::list<exitCallback> exitCallbacks;
+ 
+     void init(pksm::Language lang)
+     {

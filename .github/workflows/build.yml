@@ -35,6 +35,16 @@ jobs:
       - name: Trust the Actions workspace
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
+      - name: Apply YKSM PKSM-Core compatibility patch
+        run: |
+          if ! git -C core diff --quiet -- source/i18n/i18n.cpp; then
+            echo "PKSM-Core already contains local changes; leaving them in place."
+          elif grep -q "std::list<initCallback> initCallbacks;" core/source/i18n/i18n.cpp; then
+            echo "PKSM-Core compatibility patch is already applied."
+          else
+            git -C core apply ../patches/pksm-core-yksm-i18n.patch
+          fi
+
       - name: Install 3DS libraries
         run: |
           dkp-pacman -Syu --needed --noconfirm \

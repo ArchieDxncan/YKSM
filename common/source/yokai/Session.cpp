@@ -25,6 +25,8 @@ namespace yokai
     std::uint64_t Session::deposit(const Record& record)
     {
         const Record selected = record;
+        if (mSave.isPartySlot(selected.slot))
+            throw Error("Move this Yo-kai out of your active party first");
         // Mutate the save first. If its stale-record guard rejects the change,
         // no bank entry has been added.
         mSave.remove(selected.slot, selected.raw);

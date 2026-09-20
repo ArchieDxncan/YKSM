@@ -35,15 +35,16 @@ namespace
         return record;
     }
 
-    std::vector<std::uint8_t> yw1Save(const std::vector<std::uint8_t>& record)
+    std::vector<std::uint8_t> yw1Save(const std::vector<std::uint8_t>& record,
+        std::size_t slot = 0)
     {
         // Real decrypted YW1 saves are 38,624 bytes. The index table begins
         // after the record area, so a record-area-only buffer is too small.
         std::vector<std::uint8_t> save(38624);
         std::copy_n("Nathan", 6, save.begin() + 0x28);
         write32(save, 0x60, 60 * 60 * 60); // unrelated world/profile state
-        std::copy(record.begin(), record.end(), save.begin() + 0x1D08);
-        std::copy_n(record.begin(), 4, save.begin() + 0x73DC);
+        std::copy(record.begin(), record.end(), save.begin() + 0x1D08 + slot * 0x5C);
+        std::copy_n(record.begin(), 4, save.begin() + 0x73DC + slot * 4);
         return save;
     }
 
@@ -170,7 +171,20 @@ int main()
     assert(roundTrip.entries()[0].nickname == "Buddy");
     assert(roundTrip.entries()[1].nickname == "Second");
 
-    Session session(SaveImage(Game::YW1, yw1Save(originalRecord)), Bank{});
+    Session partySession(SaveImage(Game::YW1, yw1Save(originalRecord)), Bank{});
+    try
+    {
+        (void)partySession.deposit(0);
+        assert(false && "active-party deposit accepted");
+    }
+    catch (const Error& error)
+    {
+        assert(std::string_view(error.what()).find("active party") != std::string_view::npos);
+    }
+    assert(!partySession.dirty());
+    assert(partySession.save().records().size() == 1);
+
+    Session session(SaveImage(Game::YW1, yw1Save(originalRecord, 6)), Bank{});
     const Record cachedRecord = session.save().records().front();
     const std::uint64_t staged = session.deposit(cachedRecord);
     assert(session.dirty());
@@ -212,8 +226,8 @@ int main()
     constexpr std::uint32_t rubinyanId = 2474863454U; // signed: -1820103842
     assert(speciesName(Game::YW1, rubinyanId) == "Rubinyan");
     const auto rubinyanRecord = yw1Record(rubinyanId);
-    Session rubinyanSession(SaveImage(Game::YW1, yw1Save(rubinyanRecord)), Bank{});
-    const auto rubinyanBankId = rubinyanSession.deposit(0);
+    Session rubinyanSession(SaveImage(Game::YW1, yw1Save(rubinyanRecord, 6)), Bank{});
+    const auto rubinyanBankId = rubinyanSession.deposit(6);
     assert(rubinyanSession.save().records().empty());
     assert(rubinyanSession.bank().find(rubinyanBankId));
     const auto rubinyanBank = Bank::decode(rubinyanSession.bank().encode());
