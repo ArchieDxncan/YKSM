@@ -26,9 +26,6 @@ jobs:
   build-3ds:
     name: Nintendo 3DS build
     runs-on: ubuntu-latest
-    # Official image already includes 3ds-dev and 3ds-portlibs. Do not run
-    # dkp-pacman against pkg.devkitpro.org from GitHub Actions: those IPs are
-    # blocked (HTTP 403) and DevKitPro documents Docker as the supported CI path.
     container: devkitpro/devkitarm:latest
     steps:
       - uses: actions/checkout@v4
@@ -48,15 +45,10 @@ jobs:
             git -C core apply ../patches/pksm-core-yksm-i18n.patch
           fi
 
-      - name: Verify 3DS libraries in the image
+      - name: Install 3DS libraries
         run: |
-          command -v arm-none-eabi-pkg-config
-          command -v curl-config
-          command -v tex3ds
-          command -v 3dsxtool
-          test -f "${DEVKITPRO}/portlibs/3ds/lib/libcurl.a"
-          test -f "${DEVKITPRO}/portlibs/3ds/lib/libbz2.a"
-          arm-none-eabi-pkg-config --exists libmpg123
+          dkp-pacman -Syu --needed --noconfirm \
+            3ds-curl 3ds-bzip2 3ds-mpg123 3ds-pkg-config 3dstools tex3ds
 
       - name: Build CIA host tools
         run: |
