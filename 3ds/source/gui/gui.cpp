@@ -2043,7 +2043,8 @@ u8 Gui::transparencyWaver()
 
 bool Gui::showChoiceMessage(const std::string& message, int timer)
 {
-    DecisionScreen screen(message);
+    (void)timer;
+    DecisionScreen screen(message, "A: Continue   B: Cancel");
     return runModalScreen(screen);
 }
 

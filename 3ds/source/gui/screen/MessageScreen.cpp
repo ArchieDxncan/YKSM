@@ -25,9 +25,7 @@
  */
 
 #include "MessageScreen.hpp"
-#include "Configuration.hpp"
 #include "gui.hpp"
-#include "i18n_ext.hpp"
 
 void MessageScreen::drawTop() const
 {
@@ -39,7 +37,7 @@ void MessageScreen::drawTop() const
         PKSM_Color(255, 255, 255, Gui::transparencyWaver()), TextPosX::CENTER, TextPosY::CENTER);
 
     float continueY = 110 + (lineMod / 2) * parsed->lines();
-    Gui::text(i18n::localize("CONTINUE"), 200, continueY + 3, FONT_SIZE_11, COLOR_WHITE,
+    Gui::text("A: Continue", 200, continueY + 3, FONT_SIZE_11, COLOR_WHITE,
         TextPosX::CENTER, TextPosY::TOP);
 }
 

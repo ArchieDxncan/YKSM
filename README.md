@@ -19,6 +19,9 @@ Blasters' `game1.yw_g`. Authenticated saves must be kept beside their matching `
 The local transfer bank is `/3ds/YKSM/bank.ykb`. Before an installed save is changed, a backup is
 written under `/3ds/YKSM/backups`.
 
+YKSM's active interface does not initialize PKSM's inherited Pokemon translation databases. This
+prevents confirmation dialogs from trying to load removed files such as `items3.txt`.
+
 `.ykbank` migration is intentionally not supported.
 
 ## Controls

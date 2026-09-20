@@ -25,6 +25,7 @@ GPLv3 framework components from FlagBrew's PKSM project.
 - One-load save context shared across the selector, overview, and transfer screens
 - Cached-record batch transfers to avoid repeated full-save parsing on 3DS
 - PKSM TitleLoadScreen/MainMenu-derived selector and save-overview compositions
+- Self-contained confirmation dialogs with inherited Pokemon translation initialization disabled
 
 The YW1 player-name location at `0x28` is verified by the published save dumper. No supported
 format currently has a verified play-time field in the available references. The earlier assumption
