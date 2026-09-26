@@ -22,6 +22,7 @@ namespace
     std::vector<std::uint8_t> yw1Record(std::uint32_t id)
     {
         std::vector<std::uint8_t> record(0x5C);
+        write32(record, 0, 0x00020001);
         write32(record, 4, id);
         std::copy_n("Buddy", 5, record.begin() + 8);
         write32(record, 0x38, 1234);
@@ -36,7 +37,7 @@ namespace
     }
 
     std::vector<std::uint8_t> yw1Save(const std::vector<std::uint8_t>& record,
-        std::size_t slot = 0)
+        std::size_t slot = 0, std::size_t indexPosition = 0)
     {
         // Real decrypted YW1 saves are 38,624 bytes. The index table begins
         // after the record area, so a record-area-only buffer is too small.
@@ -44,7 +45,10 @@ namespace
         std::copy_n("Nathan", 6, save.begin() + 0x28);
         write32(save, 0x60, 60 * 60 * 60); // unrelated world/profile state
         std::copy(record.begin(), record.end(), save.begin() + 0x1D08 + slot * 0x5C);
-        std::copy_n(record.begin(), 4, save.begin() + 0x73DC + slot * 4);
+        for (std::size_t item = 0; item < indexPosition; item++)
+            write32(save, 0x73DC + item * 4,
+                static_cast<std::uint32_t>((item + 2) | ((item + 3) << 16)));
+        std::copy_n(record.begin(), 4, save.begin() + 0x73DC + indexPosition * 4);
         return save;
     }
 
@@ -115,6 +119,21 @@ int main()
     assert(records[0].nickname == "Buddy");
     assert(records[0].level == 27);
     assert(records[0].xp == 1234);
+    assert(save.isPartySlot(0));
+    assert(save.partySlots() == std::vector<std::size_t>{0});
+
+    auto missingIndexBytes = yw1Save(originalRecord);
+    std::fill_n(missingIndexBytes.begin() + 0x73DC, 4, 0);
+    SaveImage missingIndex(Game::YW1, missingIndexBytes);
+    try
+    {
+        missingIndex.remove(0, originalRecord);
+        assert(false && "record with missing index was removed");
+    }
+    catch (const Error&)
+    {
+    }
+    assert(missingIndex.records().size() == 1);
 
     Bank bank;
     const std::uint64_t bankId = bank.append(Game::YW1, records[0]).id;
@@ -184,7 +203,7 @@ int main()
     assert(!partySession.dirty());
     assert(partySession.save().records().size() == 1);
 
-    Session session(SaveImage(Game::YW1, yw1Save(originalRecord, 6)), Bank{});
+    Session session(SaveImage(Game::YW1, yw1Save(originalRecord, 6, 6)), Bank{});
     const Record cachedRecord = session.save().records().front();
     const std::uint64_t staged = session.deposit(cachedRecord);
     assert(session.dirty());
@@ -226,8 +245,22 @@ int main()
     constexpr std::uint32_t rubinyanId = 2474863454U; // signed: -1820103842
     assert(speciesName(Game::YW1, rubinyanId) == "Rubinyan");
     const auto rubinyanRecord = yw1Record(rubinyanId);
-    Session rubinyanSession(SaveImage(Game::YW1, yw1Save(rubinyanRecord, 6)), Bank{});
-    const auto rubinyanBankId = rubinyanSession.deposit(6);
+    Session rubinyanPartySession(
+        SaveImage(Game::YW1, yw1Save(rubinyanRecord, 116, 1)), Bank{});
+    assert(rubinyanPartySession.save().isPartySlot(116));
+    try
+    {
+        (void)rubinyanPartySession.deposit(116);
+        assert(false && "party Rubinyan deposit accepted");
+    }
+    catch (const Error&)
+    {
+    }
+
+    Session rubinyanSession(
+        SaveImage(Game::YW1, yw1Save(rubinyanRecord, 116, 6)), Bank{});
+    assert(!rubinyanSession.save().isPartySlot(116));
+    const auto rubinyanBankId = rubinyanSession.deposit(116);
     assert(rubinyanSession.save().records().empty());
     assert(rubinyanSession.bank().find(rubinyanBankId));
     const auto rubinyanBank = Bank::decode(rubinyanSession.bank().encode());

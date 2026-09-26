@@ -55,6 +55,7 @@ Transfer lists:
 
 Active-party Yo-kai cannot be deposited. Move them to a reserve slot in-game first; this prevents
 the game's party list from retaining a reference to a removed record and displaying a duplicate.
+Party members are detected from each game's ordered identifier table and shown grayed out.
 
 ## Installation
 

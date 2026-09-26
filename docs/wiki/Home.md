@@ -21,7 +21,7 @@ placed below `/3ds/YKSM/saves/<GAME>/`. Keep `head.yw` or `head.yw_g` beside aut
 - B: discard staged changes, or exit when clean
 
 Move active-party Yo-kai into reserve slots in-game before depositing them. YKSM rejects party
-deposits to avoid leaving the game with a dangling party entry.
+deposits to avoid leaving the game with a dangling party entry, and displays those members in gray.
 
 The local bank is `/3ds/YKSM/bank.ykb`. Installed-save backups are written under
 `/3ds/YKSM/backups` before commits. Keep a backup until the edited save opens successfully in-game.

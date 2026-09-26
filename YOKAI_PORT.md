@@ -65,7 +65,8 @@ under `/3ds/YKSM/backups` before commits.
 - B: discard staged changes; return to the save overview when clean
 
 Depositing an active-party member is rejected. Move it to a reserve slot in-game first so the
-party layout never contains a dangling entry.
+party layout never contains a dangling entry. Detected party/squad members are grayed out in the
+save list.
 
 ## Build and tests
 

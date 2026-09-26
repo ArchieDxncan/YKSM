@@ -40,6 +40,7 @@ private:
     yokai::Session* session = nullptr;
     std::vector<yokai::Record> gameRows;
     std::vector<std::size_t> bankRows;
+    std::set<std::size_t> partyGameSlots;
     std::set<std::size_t> markedGameSlots;
     std::set<std::uint64_t> markedBankIds;
     yokai::Game activeGame = yokai::Game::YW1;

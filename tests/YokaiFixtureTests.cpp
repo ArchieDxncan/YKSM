@@ -1,6 +1,7 @@
 #include "yokai/Crypto.hpp"
 #include "yokai/SaveImage.hpp"
 #include "yokai/Session.hpp"
+#include <algorithm>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -37,7 +38,9 @@ int main(int argc, char** argv)
     }
     const fs::path root = argv[1];
     std::size_t tested = 0;
-    std::size_t rubinyanTested = 0;
+    std::size_t reserveTransfers = 0;
+    std::size_t partyFixtures = 0;
+    std::size_t rubinyanPartyProtected = 0;
     try
     {
         for (const auto& entry : fs::recursive_directory_iterator(root))
@@ -68,17 +71,74 @@ int main(int argc, char** argv)
             if (second.bytes != decrypted.bytes)
                 throw std::runtime_error("Decrypt-after-encrypt failed for " + entry.path().string());
             const auto originalRecords = image.records();
+            const std::size_t expectedParty = std::min<std::size_t>(
+                *game == yokai::Game::Blasters || *game == yokai::Game::Busters2 ? 4 : 6,
+                originalRecords.size());
+            const auto detectedParty = image.partySlots();
+            if (detectedParty.size() != expectedParty)
+                throw std::runtime_error("Party detection failed for " + entry.path().string());
+            if (expectedParty)
+            {
+                const auto member = std::find_if(originalRecords.begin(), originalRecords.end(),
+                    [&detectedParty](const auto& record) {
+                        return std::find(detectedParty.begin(), detectedParty.end(), record.slot) !=
+                            detectedParty.end();
+                    });
+                yokai::Session partyProbe(
+                    yokai::SaveImage(*game, decrypted.bytes), yokai::Bank{});
+                try
+                {
+                    (void)partyProbe.deposit(member->slot);
+                    throw std::runtime_error("Party deposit was accepted for " +
+                                             entry.path().string());
+                }
+                catch (const yokai::Error&)
+                {
+                    partyFixtures++;
+                }
+            }
+            const auto reserve = std::find_if(originalRecords.begin(), originalRecords.end(),
+                [&detectedParty](const auto& record) {
+                    return std::find(detectedParty.begin(), detectedParty.end(), record.slot) ==
+                        detectedParty.end();
+                });
+            if (reserve != originalRecords.end())
+            {
+                yokai::Session reserveProbe(
+                    yokai::SaveImage(*game, decrypted.bytes), yokai::Bank{});
+                const auto id = reserveProbe.deposit(reserve->slot);
+                if (!reserveProbe.bank().find(id) ||
+                    reserveProbe.save().records().size() + 1 != originalRecords.size() ||
+                    reserveProbe.save().partySlots().size() != expectedParty)
+                    throw std::runtime_error("Reserve transfer failed for " +
+                                             entry.path().string());
+                reserveTransfers++;
+            }
             for (const auto& record : originalRecords)
             {
                 if (*game != yokai::Game::YW1 || record.species != "Rubinyan") continue;
                 yokai::Session transferProbe(
                     yokai::SaveImage(*game, decrypted.bytes), yokai::Bank{});
+                if (image.isPartySlot(record.slot))
+                {
+                    try
+                    {
+                        (void)transferProbe.deposit(record.slot);
+                        throw std::runtime_error("Party Rubinyan deposit was accepted for " +
+                                                 entry.path().string());
+                    }
+                    catch (const yokai::Error&)
+                    {
+                        rubinyanPartyProtected++;
+                    }
+                    continue;
+                }
                 const auto id = transferProbe.deposit(record.slot);
                 const auto bank = yokai::Bank::decode(transferProbe.bank().encode());
                 if (!bank.find(id) || bank.find(id)->species != "Rubinyan")
                     throw std::runtime_error("Rubinyan bank round trip failed for " +
                                              entry.path().string());
-                rubinyanTested++;
+                reserveTransfers++;
             }
             if (!originalRecords.empty())
             {
@@ -106,6 +166,7 @@ int main(int argc, char** argv)
         std::cerr << "No fixtures were found\n";
         return 1;
     }
-    std::cout << "Validated " << tested << " encrypted save fixtures and " << rubinyanTested
-              << " YW1 Rubinyan bank transfers\n";
+    std::cout << "Validated " << tested << " encrypted save fixtures, " << partyFixtures
+              << " party guards, " << reserveTransfers << " reserve transfers, and "
+              << rubinyanPartyProtected << " protected party Rubinyan entries\n";
 }

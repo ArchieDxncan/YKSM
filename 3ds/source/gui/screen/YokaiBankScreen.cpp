@@ -16,7 +16,10 @@ namespace
     const PKSM_Color headerBlue(36, 75, 126, 255);
     const PKSM_Color rowBlue(183, 225, 225, 255);
     const PKSM_Color rowPink(245, 191, 194, 255);
+    const PKSM_Color rowDisabled(181, 181, 174, 255);
+    const PKSM_Color rowDisabledSelected(201, 195, 181, 255);
     const PKSM_Color ink(46, 55, 62, 255);
+    const PKSM_Color disabledInk(105, 105, 100, 255);
 
     void pill(float x, float y, float width, float height, PKSM_Color color)
     {
@@ -26,11 +29,13 @@ namespace
         Gui::drawSolidCircle(x + width - radius, y + radius, radius, color);
     }
 
-    void mark(float x, float y, bool selected)
+    void mark(float x, float y, bool selected, bool disabled = false)
     {
-        const PKSM_Color border(91, 73, 45, 255);
+        const PKSM_Color border = disabled ? PKSM_Color(120, 120, 115, 255) :
+            PKSM_Color(91, 73, 45, 255);
         Gui::drawSolidCircle(x + 6, y + 6, 7, border);
-        Gui::drawSolidCircle(x + 6, y + 6, 5, selected ? PKSM_Color(244, 176, 42, 255) : COLOR_WHITE);
+        Gui::drawSolidCircle(x + 6, y + 6, 5, disabled ? PKSM_Color(205, 205, 198, 255) :
+            selected ? PKSM_Color(244, 176, 42, 255) : COLOR_WHITE);
         if (selected)
         {
             Gui::drawLine(x + 3, y + 6, x + 5, y + 9, 2, COLOR_WHITE);
@@ -76,6 +81,9 @@ YokaiBankScreen::YokaiBankScreen(std::shared_ptr<yokai::SaveContext> context)
 void YokaiBankScreen::refresh()
 {
     gameRows = session ? session->save().records() : std::vector<yokai::Record>{};
+    partyGameSlots.clear();
+    if (session)
+        for (const std::size_t slot : session->save().partySlots()) partyGameSlots.insert(slot);
     bankRows.clear();
     if (session)
         for (std::size_t index = 0; index < session->bank().size(); index++) bankRows.push_back(index);
@@ -246,15 +254,22 @@ void YokaiBankScreen::drawBottom() const
             if (index >= gameRows.size()) break;
             const int y = 40 + static_cast<int>(row) * 23;
             const bool selected = pane == Pane::Game && index == gameSelection;
-            pill(8, y, 304, 20, selected ? rowPink : rowBlue);
             const auto& record = gameRows[index];
+            const bool party = partyGameSlots.contains(record.slot);
+            pill(8, y, 304, 20, party ?
+                (selected ? rowDisabledSelected : rowDisabled) :
+                (selected ? rowPink : rowBlue));
             char level[8];
             std::snprintf(level, sizeof(level), "Lv %u", static_cast<unsigned>(record.level));
-            mark(14, y + 4, markedGameSlots.contains(record.slot));
-            Gui::text(record.displayName(), 36, y + 4, FONT_SIZE_11, ink,
-                TextPosX::LEFT, TextPosY::TOP, TextWidthAction::SLICE, 205);
-            Gui::text(level, 274, y + 4, FONT_SIZE_9, headerBlue,
-                TextPosX::CENTER, TextPosY::TOP);
+            mark(14, y + 4, markedGameSlots.contains(record.slot), party);
+            Gui::text(record.displayName(), 36, y + 4, FONT_SIZE_11,
+                party ? disabledInk : ink, TextPosX::LEFT, TextPosY::TOP,
+                TextWidthAction::SLICE, party ? 180 : 205);
+            if (party)
+                Gui::text("Party", 238, y + 4, FONT_SIZE_9, disabledInk,
+                    TextPosX::CENTER, TextPosY::TOP);
+            Gui::text(level, 281, y + 4, FONT_SIZE_9,
+                party ? disabledInk : headerBlue, TextPosX::CENTER, TextPosY::TOP);
         }
         if (gameRows.empty())
             Gui::text("No Yo-kai in this save", 160, 102, FONT_SIZE_14, ink,
@@ -288,6 +303,11 @@ void YokaiBankScreen::toggleSelected()
     if (pane == Pane::Game)
     {
         const std::size_t slot = gameRows[index].slot;
+        if (partyGameSlots.contains(slot))
+        {
+            status = "Party members cannot be marked; move them to reserve first";
+            return;
+        }
         if (!markedGameSlots.erase(slot)) markedGameSlots.insert(slot);
     }
     else
@@ -312,7 +332,7 @@ void YokaiBankScreen::transfer()
             for (const auto& record : gameRows)
                 if (markedGameSlots.contains(record.slot)) selected.push_back(record);
             for (const auto& record : selected)
-                if (session->save().isPartySlot(record.slot))
+                if (partyGameSlots.contains(record.slot))
                     throw yokai::Error("Move party Yo-kai to reserve slots before banking");
             for (const auto& record : selected)
             {

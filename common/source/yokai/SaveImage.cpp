@@ -147,14 +147,48 @@ namespace yokai
 
     bool SaveImage::isPartySlot(std::size_t slot) const
     {
-        // The main-series games keep the six active members at the start of
-        // the Yo-kai array. YW1 fixtures containing only a party consistently
-        // occupy slots 0-5; erasing one creates a hole that the game's Change
-        // Members screen renders as an apparent duplicate. The action games
-        // use four-member squads in the same leading positions.
+        const RecordArea area = recordArea();
+        if (slot >= area.slots) return false;
+        const Layout& info = layout(mGame);
+        const std::size_t record = area.offset + slot * info.recordSize;
+        if (read32(mBytes, record + 4) == 0) return false;
+        const std::uint32_t number = read32(mBytes, record);
+
+        // Section 0A (0x73DC in YW1) is an ordered identifier list, not a
+        // slot-parallel table. Its leading entries are the active party/squad.
+        // This matters for saves such as the YW1 fixture whose party Rubinyan
+        // lives in record slot 116 but is the second identifier in this list.
         const std::size_t partySize =
             mGame == Game::Blasters || mGame == Game::Busters2 ? 4 : 6;
-        return slot < partySize;
+        const std::size_t indexes = indexOffset();
+        for (std::size_t item = 0; item < partySize; item++)
+            if (read32(mBytes, indexes + item * 4) == number) return true;
+        return false;
+    }
+
+    std::vector<std::size_t> SaveImage::partySlots() const
+    {
+        const RecordArea area = recordArea();
+        const Layout& info = layout(mGame);
+        const std::size_t partySize =
+            mGame == Game::Blasters || mGame == Game::Busters2 ? 4 : 6;
+        const std::size_t indexes = indexOffset();
+        std::vector<std::size_t> output;
+        output.reserve(partySize);
+        for (std::size_t member = 0; member < partySize; member++)
+        {
+            const std::uint32_t number = read32(mBytes, indexes + member * 4);
+            for (std::size_t slot = 0; slot < area.slots; slot++)
+            {
+                const std::size_t record = area.offset + slot * info.recordSize;
+                if (read32(mBytes, record + 4) != 0 && read32(mBytes, record) == number)
+                {
+                    output.push_back(slot);
+                    break;
+                }
+            }
+        }
+        return output;
     }
 
     std::string SaveImage::playerName() const
@@ -180,36 +214,30 @@ namespace yokai
         const RecordArea area = recordArea();
         const std::size_t recordOffset = area.offset + slot * info.recordSize;
         const std::size_t indexes = indexOffset();
-        if (mGame == Game::Blasters || mGame == Game::Busters2)
+        const auto wanted = removedNumber.empty()
+            ? std::span<const std::uint8_t>(mBytes).subspan(recordOffset, 4)
+            : removedNumber;
+        for (std::size_t item = 0; item < area.slots; item++)
         {
-            const auto wanted = removedNumber.empty()
-                ? std::span<const std::uint8_t>(mBytes).subspan(recordOffset, 4)
-                : removedNumber;
-            for (std::size_t item = 0; item < area.slots; item++)
+            const std::size_t index = indexes + item * 4;
+            if (!removedNumber.empty() &&
+                std::equal(wanted.begin(), wanted.end(), mBytes.begin() + index))
             {
-                const std::size_t index = indexes + item * 4;
-                if (!removedNumber.empty() && std::equal(wanted.begin(), wanted.end(), mBytes.begin() + index))
-                {
-                    std::fill_n(mBytes.begin() + index, 4, 0);
-                    return;
-                }
-                if (removedNumber.empty() && read32(mBytes, index) == 0)
-                {
-                    std::copy_n(wanted.begin(), 4, mBytes.begin() + index);
-                    return;
-                }
+                const std::size_t following = area.slots - item - 1;
+                if (following)
+                    std::memmove(mBytes.data() + index, mBytes.data() + index + 4,
+                        following * 4);
+                std::fill_n(mBytes.begin() + indexes + (area.slots - 1) * 4, 4, 0);
+                return;
             }
-            return;
+            if (removedNumber.empty() && read32(mBytes, index) == 0)
+            {
+                std::copy_n(wanted.begin(), 4, mBytes.begin() + index);
+                return;
+            }
         }
-        const std::size_t index = indexes + slot * 4;
-        if (read32(mBytes, recordOffset + 4) == 0)
-        {
-            std::fill_n(mBytes.begin() + index, 4, 0);
-        }
-        else
-        {
-            std::copy_n(mBytes.begin() + recordOffset, 4, mBytes.begin() + index);
-        }
+        if (removedNumber.empty()) throw Error("Yo-kai index has no empty entries");
+        throw Error("Yo-kai identifier was not found in the index");
     }
 
     void SaveImage::assignNumbers(std::size_t absoluteRecordOffset)
@@ -244,8 +272,10 @@ namespace yokai
         }
         const std::array<std::uint8_t, 4> number = {
             mBytes[offset], mBytes[offset + 1], mBytes[offset + 2], mBytes[offset + 3]};
-        std::fill_n(mBytes.begin() + offset, info.recordSize, 0);
+        // Update the fallible identifier table first. Once that succeeds,
+        // clearing a validated in-bounds record cannot fail.
         syncIndex(slot, number);
+        std::fill_n(mBytes.begin() + offset, info.recordSize, 0);
     }
 
     std::size_t SaveImage::insert(std::span<const std::uint8_t> record, bool renumber)
@@ -260,7 +290,15 @@ namespace yokai
             {
                 std::copy(record.begin(), record.end(), mBytes.begin() + offset);
                 if (renumber) assignNumbers(offset);
-                syncIndex(slot);
+                try
+                {
+                    syncIndex(slot);
+                }
+                catch (...)
+                {
+                    std::fill_n(mBytes.begin() + offset, info.recordSize, 0);
+                    throw;
+                }
                 return slot;
             }
         }
