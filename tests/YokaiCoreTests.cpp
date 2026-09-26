@@ -121,6 +121,7 @@ int main()
     assert(records[0].xp == 1234);
     assert(save.isPartySlot(0));
     assert(save.partySlots() == std::vector<std::size_t>{0});
+    assert(save.recordOrder() == std::vector<std::size_t>{0});
 
     auto missingIndexBytes = yw1Save(originalRecord);
     std::fill_n(missingIndexBytes.begin() + 0x73DC, 4, 0);
@@ -202,6 +203,17 @@ int main()
     }
     assert(!partySession.dirty());
     assert(partySession.save().records().size() == 1);
+
+    const auto partyCopyId = partySession.copyToBank(0);
+    assert(partySession.dirty());
+    assert(partySession.save().records().size() == 1);
+    assert(partySession.bank().find(partyCopyId));
+    assert(partySession.copyToSave(partyCopyId, originalRecord) == 1);
+    assert(partySession.bank().find(partyCopyId));
+    const auto copiedPartyRecords = partySession.save().records();
+    assert(copiedPartyRecords.size() == 2);
+    assert(!std::equal(copiedPartyRecords[0].raw.begin(),
+        copiedPartyRecords[0].raw.begin() + 4, copiedPartyRecords[1].raw.begin()));
 
     Session session(SaveImage(Game::YW1, yw1Save(originalRecord, 6, 6)), Bank{});
     const Record cachedRecord = session.save().records().front();

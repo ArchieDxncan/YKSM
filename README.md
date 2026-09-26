@@ -45,17 +45,22 @@ Save overview:
 Transfer lists:
 
 - Top screen: local bank; bottom screen: the opened save's Yo-kai
-- Up/Down: move through the selected list
-- SELECT: switch selection between the save and bank lists
-- L/R: change local-bank pages
+- Up/Down: move through the selected list; hold either direction to keep scrolling
+- Left/Right: jump backward/forward six entries
+- L: select the local bank on the top screen; R: select the save on the bottom screen
+- SELECT: enter or leave mark mode; A or touching a save-list row toggles its mark
 - Y: cycle the active list through name, level, and original-order sorting
 - X: confirm and save staged changes
-- A: open the **Mark / Move** menu
+- A: open the **Mark / Move / Copy** menu on the active screen
 - B: discard staged changes, or return to the save overview when there are no changes
 
 Active-party Yo-kai cannot be deposited. Move them to a reserve slot in-game first; this prevents
 the game's party list from retaining a reference to a removed record and displaying a duplicate.
-Party members are detected from each game's ordered identifier table and shown grayed out.
+Party members are detected from each game's ordered identifier table and shown grayed out. Copy is
+non-destructive and works with party members; copies inserted into a save receive a fresh internal
+identifier and are placed in reserve rather than an empty party position.
+Leaving mark mode with one or more entries marked opens the action menu automatically, with Move
+selected by default. Move and Copy then apply to the marked batch.
 
 ## Installation
 
@@ -115,6 +120,7 @@ YKSM is a GPLv3-or-later derivative of FlagBrew's PKSM framework. It retains the
 license, and attribution notices required by GPLv3 sections 7.b and 7.c. The inherited framework was
 adapted exclusively for Yo-kai Watch save handling; the upstream game-specific startup services,
 asset downloads, databases, documentation, and interface are not part of YKSM's runtime.
+The Nintendo 3DS application metadata identifies ArchieDxncan as the developer.
 
 Yo-kai save cryptography and format research derived from `togenyan/yw_save` is MIT licensed. See
 `LICENSE` and `THIRD_PARTY_LICENSES.md`.

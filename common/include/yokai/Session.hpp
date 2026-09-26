@@ -24,8 +24,13 @@ namespace yokai
 
         std::uint64_t deposit(std::size_t slot);
         std::uint64_t deposit(const Record& record);
+        std::uint64_t copyToBank(std::size_t slot);
+        std::uint64_t copyToBank(const Record& record);
         std::size_t withdraw(std::uint64_t bankId);
         std::size_t withdraw(
+            std::uint64_t bankId, std::span<const std::uint8_t> destinationExample);
+        std::size_t copyToSave(std::uint64_t bankId);
+        std::size_t copyToSave(
             std::uint64_t bankId, std::span<const std::uint8_t> destinationExample);
         void discard();
         void acceptCommitted();

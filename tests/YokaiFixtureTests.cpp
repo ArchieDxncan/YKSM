@@ -40,6 +40,7 @@ int main(int argc, char** argv)
     std::size_t tested = 0;
     std::size_t reserveTransfers = 0;
     std::size_t partyFixtures = 0;
+    std::size_t partyCopies = 0;
     std::size_t rubinyanPartyProtected = 0;
     try
     {
@@ -71,6 +72,11 @@ int main(int argc, char** argv)
             if (second.bytes != decrypted.bytes)
                 throw std::runtime_error("Decrypt-after-encrypt failed for " + entry.path().string());
             const auto originalRecords = image.records();
+            if (image.recordOrder().size() != originalRecords.size())
+                throw std::runtime_error("Original list order covered " +
+                                         std::to_string(image.recordOrder().size()) + " of " +
+                                         std::to_string(originalRecords.size()) + " records in " +
+                                         entry.path().string());
             const std::size_t expectedParty = std::min<std::size_t>(
                 *game == yokai::Game::Blasters || *game == yokai::Game::Busters2 ? 4 : 6,
                 originalRecords.size());
@@ -96,6 +102,18 @@ int main(int argc, char** argv)
                 {
                     partyFixtures++;
                 }
+                const auto copiedId = partyProbe.copyToBank(member->slot);
+                if (!partyProbe.bank().find(copiedId) ||
+                    partyProbe.save().records().size() != originalRecords.size())
+                    throw std::runtime_error("Party copy to bank failed for " +
+                                             entry.path().string());
+                (void)partyProbe.copyToSave(copiedId, member->raw);
+                if (!partyProbe.bank().find(copiedId) ||
+                    partyProbe.save().records().size() != originalRecords.size() + 1 ||
+                    partyProbe.save().partySlots().size() != expectedParty)
+                    throw std::runtime_error("Party copy back to save failed for " +
+                                             entry.path().string());
+                partyCopies++;
             }
             const auto reserve = std::find_if(originalRecords.begin(), originalRecords.end(),
                 [&detectedParty](const auto& record) {
@@ -167,6 +185,7 @@ int main(int argc, char** argv)
         return 1;
     }
     std::cout << "Validated " << tested << " encrypted save fixtures, " << partyFixtures
-              << " party guards, " << reserveTransfers << " reserve transfers, and "
+              << " party guards, " << partyCopies << " party copy round trips, "
+              << reserveTransfers << " reserve transfers, and "
               << rubinyanPartyProtected << " protected party Rubinyan entries\n";
 }

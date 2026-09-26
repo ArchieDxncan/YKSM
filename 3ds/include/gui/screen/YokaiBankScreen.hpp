@@ -28,6 +28,9 @@ private:
     void sortActive();
     void toggleSelected();
     void transfer();
+    void copySelected();
+    void drawMenu(bool top) const;
+    [[nodiscard]] bool activeHasMarks() const;
     void commit();
     void discard();
     [[nodiscard]] std::size_t visibleCount() const;
@@ -39,6 +42,7 @@ private:
     std::shared_ptr<yokai::SaveContext> context;
     yokai::Session* session = nullptr;
     std::vector<yokai::Record> gameRows;
+    std::vector<std::size_t> gameOriginalPositions;
     std::vector<std::size_t> bankRows;
     std::set<std::size_t> partyGameSlots;
     std::set<std::size_t> markedGameSlots;
@@ -48,6 +52,7 @@ private:
     SortMode gameSort = SortMode::Original;
     SortMode bankSort = SortMode::Original;
     bool menuOpen = false;
+    bool markMode = false;
     std::size_t menuSelection = 0;
     std::size_t gameSelection = 0;
     std::size_t bankSelection = 0;

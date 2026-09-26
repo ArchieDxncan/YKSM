@@ -1,6 +1,6 @@
 export YKSM_TITLE		:= 	YKSM
 export YKSM_DESCRIPTION	:=	Yo-kai Watch save manager
-export YKSM_AUTHOR		:=	YKSM contributors; based on PKSM by FlagBrew
+export YKSM_AUTHOR		:=	ArchieDxncan
 
 export VERSION_MAJOR	:=	0
 export VERSION_MINOR	:=	1

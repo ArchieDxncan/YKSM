@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <cstdio>
 #include <fstream>
+#include <limits>
 #include <sstream>
 
 namespace
@@ -62,7 +63,7 @@ namespace
 }
 
 YokaiBankScreen::YokaiBankScreen(std::shared_ptr<yokai::SaveContext> context)
-    : Screen("D-Pad Choose\nSELECT Change side\nA Menu\nY Sort\nX Save\nL/R Bank page"),
+    : Screen("D-Pad Choose\nLeft/Right Jump 6\nL Bank / R Save\nSELECT Mark mode\nA Menu\nY Sort\nX Save"),
       context(std::move(context))
 {
     session = this->context ? &this->context->session : nullptr;
@@ -81,6 +82,16 @@ YokaiBankScreen::YokaiBankScreen(std::shared_ptr<yokai::SaveContext> context)
 void YokaiBankScreen::refresh()
 {
     gameRows = session ? session->save().records() : std::vector<yokai::Record>{};
+    std::size_t positionCount = 0;
+    for (const auto& record : gameRows) positionCount = std::max(positionCount, record.slot + 1);
+    gameOriginalPositions.assign(positionCount, std::numeric_limits<std::size_t>::max());
+    if (session)
+    {
+        const auto order = session->save().recordOrder();
+        for (std::size_t position = 0; position < order.size(); position++)
+            if (order[position] < gameOriginalPositions.size())
+                gameOriginalPositions[order[position]] = position;
+    }
     partyGameSlots.clear();
     if (session)
         for (const std::size_t slot : session->save().partySlots()) partyGameSlots.insert(slot);
@@ -97,17 +108,23 @@ void YokaiBankScreen::refresh()
     }
     else
     {
-        bankPage = std::min(bankPage, bankPageCount() - 1);
-        const std::size_t first = bankPage * 9;
-        const std::size_t last = first + bankPageSize() - 1;
-        bankSelection = std::clamp(bankSelection, first, last);
+        bankSelection = std::min(bankSelection, bankRows.size() - 1);
+        bankPage = bankSelection / 9;
     }
 }
 
 void YokaiBankScreen::applySort()
 {
     if (gameSort == SortMode::Original)
-        std::sort(gameRows.begin(), gameRows.end(), [](const auto& a, const auto& b) { return a.slot < b.slot; });
+        std::sort(gameRows.begin(), gameRows.end(), [this](const auto& a, const auto& b) {
+            const auto position = [this](std::size_t slot) {
+                if (slot < gameOriginalPositions.size() &&
+                    gameOriginalPositions[slot] != std::numeric_limits<std::size_t>::max())
+                    return gameOriginalPositions[slot];
+                return gameOriginalPositions.size() + slot;
+            };
+            return position(a.slot) < position(b.slot);
+        });
     else if (gameSort == SortMode::Name)
         std::stable_sort(gameRows.begin(), gameRows.end(), [](const auto& a, const auto& b) {
             return a.displayName() < b.displayName();
@@ -136,25 +153,11 @@ void YokaiBankScreen::sortActive()
         return current == SortMode::Original ? SortMode::Name :
             current == SortMode::Name ? SortMode::Level : SortMode::Original;
     };
-    const std::size_t gameSlot = gameRows.empty() ? 0 : gameRows[gameSelection].slot;
-    const auto* selectedBankEntry = bankEntry(bankSelection);
-    const std::uint64_t bankId = selectedBankEntry ? selectedBankEntry->id : 0;
     mode = next(mode);
     applySort();
-    if (pane == Pane::Game)
-    {
-        const auto found = std::find_if(gameRows.begin(), gameRows.end(),
-            [gameSlot](const auto& row) { return row.slot == gameSlot; });
-        if (found != gameRows.end()) gameSelection = found - gameRows.begin();
-    }
-    else
-    {
-        const auto found = std::find_if(bankRows.begin(), bankRows.end(), [this, bankId](auto index) {
-            return session->bank().entries()[index].id == bankId;
-        });
-        if (found != bankRows.end()) bankSelection = found - bankRows.begin();
-        bankPage = bankSelection / 9;
-    }
+    if (!gameRows.empty()) gameSelection = std::min(gameSelection, gameRows.size() - 1);
+    if (!bankRows.empty()) bankSelection = std::min(bankSelection, bankRows.size() - 1);
+    bankPage = bankRows.empty() ? 0 : bankSelection / 9;
     const char* label = mode == SortMode::Original ? "original order" :
         mode == SortMode::Name ? "name" : "level";
     status = std::string("Sorted by ") + label;
@@ -199,8 +202,9 @@ void YokaiBankScreen::drawTop() const
     std::snprintf(title, sizeof(title), "Local Bank  %lu/%lu",
         static_cast<unsigned long>(bankPage + 1), static_cast<unsigned long>(bankPageCount()));
     Gui::text(title, 10, 7, FONT_SIZE_14, COLOR_WHITE, TextPosX::LEFT, TextPosY::TOP);
-    pill(330, 4, 61, 22, PKSM_Color(50, 57, 74, 255));
-    Gui::text("L / R", 360, 9, FONT_SIZE_9, COLOR_WHITE, TextPosX::CENTER, TextPosY::TOP);
+    pill(319, 4, 72, 22, PKSM_Color(50, 57, 74, 255));
+    Gui::text(markMode && pane == Pane::Bank ? "Mark" : "L Bank", 355, 9, FONT_SIZE_9,
+        COLOR_WHITE, TextPosX::CENTER, TextPosY::TOP);
 
     if (!session)
     {
@@ -232,6 +236,11 @@ void YokaiBankScreen::drawTop() const
     if (bankRows.empty())
         Gui::text("The local bank is empty", 200, 105, FONT_SIZE_15, ink,
             TextPosX::CENTER, TextPosY::TOP);
+    if (menuOpen && pane == Pane::Bank)
+    {
+        Gui::flushText();
+        drawMenu(true);
+    }
 }
 
 void YokaiBankScreen::drawBottom() const
@@ -243,7 +252,8 @@ void YokaiBankScreen::drawBottom() const
     Gui::drawSolidRect(0, 29, 320, 5, PKSM_Color(63, 183, 208, 255));
     Gui::text("Change Members", 8, 7, FONT_SIZE_14, COLOR_WHITE, TextPosX::LEFT, TextPosY::TOP);
     pill(220, 5, 94, 24, PKSM_Color(50, 57, 74, 255));
-    Gui::text(pane == Pane::Game ? "Save" : "Bank", 267, 10, FONT_SIZE_11,
+    Gui::text(markMode && pane == Pane::Game ? "Mark Mode" :
+        pane == Pane::Game ? "Save" : "Bank", 267, 10, FONT_SIZE_11,
         COLOR_WHITE, TextPosX::CENTER, TextPosY::TOP);
     if (session)
     {
@@ -281,18 +291,30 @@ void YokaiBankScreen::drawBottom() const
     bottomButton(0, PKSM_Color(174, 132, 70, 255), "B", "Back");
     bottomButton(80, PKSM_Color(66, 167, 70, 255), "Y", "Sort");
     bottomButton(160, PKSM_Color(56, 115, 206, 255), "X", "Save");
-    bottomButton(240, PKSM_Color(205, 76, 81, 255), "A", "Menu");
+    bottomButton(240, PKSM_Color(205, 76, 81, 255), "A", markMode ? "Mark" : "Menu");
 
-    if (menuOpen)
+    if (menuOpen && pane == Pane::Game)
     {
-        Gui::drawSolidRect(137, 63, 176, 105, PKSM_Color(91, 66, 43, 255));
-        Gui::drawSolidRect(140, 66, 170, 99, PKSM_Color(255, 244, 207, 255));
-        Gui::text("What'll you do?", 225, 73, FONT_SIZE_12, ink,
+        Gui::flushText();
+        drawMenu(false);
+    }
+}
+
+void YokaiBankScreen::drawMenu(bool top) const
+{
+    const float x = top ? 217.0f : 137.0f;
+    const float center = x + 88.0f;
+    Gui::drawSolidRect(x, 43, 176, 143, PKSM_Color(91, 66, 43, 255));
+    Gui::drawSolidRect(x + 3, 46, 170, 137, PKSM_Color(255, 244, 207, 255));
+    Gui::text("What'll you do?", center, 53, FONT_SIZE_12, ink,
+        TextPosX::CENTER, TextPosY::TOP);
+    static constexpr const char* labels[] = {"Mark", "Move", "Copy"};
+    for (std::size_t item = 0; item < 3; item++)
+    {
+        const float y = 79.0f + item * 33.0f;
+        pill(x + 13, y, 150, 25, menuSelection == item ? rowPink : rowBlue);
+        Gui::text(labels[item], center, y + 7, FONT_SIZE_11, ink,
             TextPosX::CENTER, TextPosY::TOP);
-        pill(150, 99, 150, 25, menuSelection == 0 ? rowPink : rowBlue);
-        pill(150, 132, 150, 25, menuSelection == 1 ? rowPink : rowBlue);
-        Gui::text("Mark", 225, 106, FONT_SIZE_11, ink, TextPosX::CENTER, TextPosY::TOP);
-        Gui::text("Move", 225, 139, FONT_SIZE_11, ink, TextPosX::CENTER, TextPosY::TOP);
     }
 }
 
@@ -365,6 +387,63 @@ void YokaiBankScreen::transfer()
         Logging::error("YKSM transfer failed: {}", status);
         refresh();
     }
+}
+
+void YokaiBankScreen::copySelected()
+{
+    if (!session || visibleCount() == 0) return;
+    try
+    {
+        std::size_t copied = 0;
+        if (pane == Pane::Game)
+        {
+            std::vector<yokai::Record> selected;
+            if (markedGameSlots.empty()) selected.push_back(gameRows[gameSelection]);
+            else
+                for (const auto& record : gameRows)
+                    if (markedGameSlots.contains(record.slot)) selected.push_back(record);
+            for (const auto& record : selected)
+            {
+                Logging::info("YKSM copy to bank: game {}, slot {}",
+                    yokai::gameName(activeGame), record.slot);
+                session->copyToBank(record);
+                copied++;
+            }
+            markedGameSlots.clear();
+        }
+        else
+        {
+            const std::vector<std::uint8_t> example =
+                gameRows.empty() ? std::vector<std::uint8_t>{} : gameRows.front().raw;
+            std::vector<std::uint64_t> selected;
+            if (markedBankIds.empty()) selected.push_back(bankEntry(bankSelection)->id);
+            else
+                for (const std::size_t index : bankRows)
+                {
+                    const std::uint64_t id = session->bank().entries()[index].id;
+                    if (markedBankIds.contains(id)) selected.push_back(id);
+                }
+            for (const std::uint64_t id : selected)
+            {
+                session->copyToSave(id, example);
+                copied++;
+            }
+            markedBankIds.clear();
+        }
+        status = "Staged " + std::to_string(copied) + " copy/copies; source kept";
+        refresh();
+    }
+    catch (const std::exception& error)
+    {
+        status = error.what();
+        Logging::error("YKSM copy failed: {}", status);
+        refresh();
+    }
+}
+
+bool YokaiBankScreen::activeHasMarks() const
+{
+    return pane == Pane::Game ? !markedGameSlots.empty() : !markedBankIds.empty();
 }
 
 void YokaiBankScreen::commit()
@@ -449,64 +528,103 @@ void YokaiBankScreen::discard()
 void YokaiBankScreen::update(touchPosition* touch)
 {
     const u32 down = hidKeysDown();
-    if (menuOpen)
+    const u32 repeat = hidKeysDownRepeat();
+    if (down & KEY_SELECT)
     {
-        if (down & (KEY_UP | KEY_DOWN)) menuSelection = 1 - menuSelection;
-        if (down & KEY_B) menuOpen = false;
-        if (touch && (down & KEY_TOUCH))
+        menuOpen = false;
+        if (markMode)
         {
-            if (touch->px >= 150 && touch->px < 300 && touch->py >= 99 && touch->py < 124)
-                menuSelection = 0;
-            else if (touch->px >= 150 && touch->px < 300 && touch->py >= 132 && touch->py < 157)
+            markMode = false;
+            if (activeHasMarks())
+            {
                 menuSelection = 1;
-            else return;
+                menuOpen = true;
+                status = "Choose what to do with the marked Yo-kai";
+            }
+            else status = "Mark mode off";
         }
-        if (down & (KEY_A | KEY_TOUCH))
+        else
         {
-            menuOpen = false;
-            if (menuSelection == 0) toggleSelected();
-            else transfer();
+            markMode = true;
+            status = "Mark mode: press A or touch a Yo-kai";
         }
         return;
     }
-    if (down & KEY_SELECT) pane = pane == Pane::Game ? Pane::Bank : Pane::Game;
-    if (down & KEY_L)
+    if (menuOpen)
     {
-        bankPage = bankPage == 0 ? bankPageCount() - 1 : bankPage - 1;
-        bankSelection = bankPage * 9;
-        pane = Pane::Bank;
+        if (down & KEY_L) pane = Pane::Bank;
+        if (down & KEY_R) pane = Pane::Game;
+        if (repeat & KEY_UP) menuSelection = (menuSelection + 2) % 3;
+        if (repeat & KEY_DOWN) menuSelection = (menuSelection + 1) % 3;
+        if (down & KEY_B) menuOpen = false;
+        bool touchedItem = false;
+        if (pane == Pane::Game && touch && (down & KEY_TOUCH))
+        {
+            if (touch->px >= 150 && touch->px < 300)
+                for (std::size_t item = 0; item < 3; item++)
+                {
+                    const std::size_t y = 79 + item * 33;
+                    if (touch->py >= y && touch->py < y + 25)
+                    {
+                        menuSelection = item;
+                        touchedItem = true;
+                    }
+                }
+        }
+        if ((down & KEY_A) || touchedItem)
+        {
+            menuOpen = false;
+            if (menuSelection == 0)
+            {
+                markMode = true;
+                status = "Mark mode: press A or touch a Yo-kai";
+            }
+            else if (menuSelection == 1) transfer();
+            else copySelected();
+        }
+        return;
     }
-    if (down & KEY_R)
-    {
-        bankPage = (bankPage + 1) % bankPageCount();
-        bankSelection = bankPage * 9;
-        pane = Pane::Bank;
-    }
-    if (down & KEY_UP && visibleCount())
+    if (down & KEY_L) pane = Pane::Bank;
+    if (down & KEY_R) pane = Pane::Game;
+    if (repeat & KEY_UP && visibleCount())
     {
         if (pane == Pane::Game)
             gameSelection = gameSelection == 0 ? gameRows.size() - 1 : gameSelection - 1;
-        else
-        {
-            const std::size_t first = bankPage * 9;
-            bankSelection = bankSelection == first ? first + bankPageSize() - 1 : bankSelection - 1;
-        }
+        else bankSelection = bankSelection == 0 ? bankRows.size() - 1 : bankSelection - 1;
     }
-    if (down & KEY_DOWN && visibleCount())
+    if (repeat & KEY_DOWN && visibleCount())
     {
         if (pane == Pane::Game) gameSelection = (gameSelection + 1) % gameRows.size();
-        else
-        {
-            const std::size_t first = bankPage * 9;
-            bankSelection = first + (bankSelection - first + 1) % bankPageSize();
-        }
+        else bankSelection = (bankSelection + 1) % bankRows.size();
     }
+    if (repeat & KEY_LEFT && visibleCount())
+    {
+        auto& selection = pane == Pane::Game ? gameSelection : bankSelection;
+        selection = selection > 6 ? selection - 6 : 0;
+    }
+    if (repeat & KEY_RIGHT && visibleCount())
+    {
+        auto& selection = pane == Pane::Game ? gameSelection : bankSelection;
+        selection = std::min(selection + 6, visibleCount() - 1);
+    }
+    if (pane == Pane::Bank) bankPage = bankRows.empty() ? 0 : bankSelection / 9;
     if (down & KEY_Y) sortActive();
     if (down & KEY_X) commit();
-    if (down & KEY_A) menuOpen = true;
+    if (down & KEY_A)
+    {
+        if (markMode) toggleSelected();
+        else menuOpen = true;
+    }
     if (down & KEY_B)
     {
-        if (session && session->dirty()) discard();
+        if (markMode)
+        {
+            markMode = false;
+            if (pane == Pane::Game) markedGameSlots.clear();
+            else markedBankIds.clear();
+            status = "Mark mode cancelled";
+        }
+        else if (session && session->dirty()) discard();
         else ScreenStack::requestPop();
     }
     if (touch && (down & KEY_TOUCH))
@@ -519,17 +637,26 @@ void YokaiBankScreen::update(touchPosition* touch)
             {
                 gameSelection = index;
                 pane = Pane::Game;
+                if (markMode) toggleSelected();
             }
         }
         else if (touch->py >= 208)
         {
             if (touch->px < 80)
             {
-                if (session && session->dirty()) discard();
+                if (markMode)
+                {
+                    markMode = false;
+                    if (pane == Pane::Game) markedGameSlots.clear();
+                    else markedBankIds.clear();
+                    status = "Mark mode cancelled";
+                }
+                else if (session && session->dirty()) discard();
                 else ScreenStack::requestPop();
             }
             else if (touch->px < 160) sortActive();
             else if (touch->px < 240) commit();
+            else if (markMode) toggleSelected();
             else menuOpen = true;
         }
     }

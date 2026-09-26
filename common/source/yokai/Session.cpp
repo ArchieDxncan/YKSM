@@ -43,6 +43,22 @@ namespace yokai
         }
     }
 
+    std::uint64_t Session::copyToBank(std::size_t slot)
+    {
+        const auto records = mSave.records();
+        const auto found = std::find_if(records.begin(), records.end(),
+            [slot](const Record& record) { return record.slot == slot; });
+        if (found == records.end()) throw Error("Selected save entry was not found");
+        return copyToBank(*found);
+    }
+
+    std::uint64_t Session::copyToBank(const Record& record)
+    {
+        const std::uint64_t id = mBank.append(mSave.game(), record).id;
+        mDirty = true;
+        return id;
+    }
+
     std::size_t Session::withdraw(std::uint64_t bankId)
     {
         std::vector<std::uint8_t> example;
@@ -60,16 +76,45 @@ namespace yokai
         if (!compatible(mSave.game(), entry))
             throw Error(entry.species + " is not compatible with " + std::string(gameName(mSave.game())));
         const auto record = convertRecord(entry, mSave.game(), destinationExample);
-        const std::size_t slot = mSave.insert(record, entry.sourceGame != mSave.game());
+        const bool renumber = entry.sourceGame != mSave.game() ||
+            mSave.containsIdentifier(std::span<const std::uint8_t>(record).first<4>());
+        const std::size_t slot = mSave.insert(record, renumber);
         try
         {
             mBank.erase(bankId);
         }
         catch (...)
         {
-            mSave.remove(slot, record);
+            const auto inserted = mSave.records();
+            const auto found = std::find_if(inserted.begin(), inserted.end(),
+                [slot](const Record& item) { return item.slot == slot; });
+            if (found != inserted.end()) mSave.remove(slot, found->raw);
             throw;
         }
+        mDirty = true;
+        return slot;
+    }
+
+    std::size_t Session::copyToSave(std::uint64_t bankId)
+    {
+        std::vector<std::uint8_t> example;
+        const auto existing = mSave.records();
+        if (!existing.empty()) example = existing.front().raw;
+        return copyToSave(bankId, example);
+    }
+
+    std::size_t Session::copyToSave(
+        std::uint64_t bankId, std::span<const std::uint8_t> destinationExample)
+    {
+        const BankEntry* selected = mBank.find(bankId);
+        if (!selected) throw Error("Selected bank entry was not found");
+        const BankEntry entry = *selected;
+        if (!compatible(mSave.game(), entry))
+            throw Error(entry.species + " is not compatible with " + std::string(gameName(mSave.game())));
+        const auto record = convertRecord(entry, mSave.game(), destinationExample);
+        // Copy always creates a new identity. This is essential when copying a
+        // party member back into the save that already owns the source record.
+        const std::size_t slot = mSave.insert(record, true);
         mDirty = true;
         return slot;
     }

@@ -56,17 +56,21 @@ under `/3ds/YKSM/backups` before commits.
 ## Controls
 
 - Top screen: Local Bank; bottom screen: the opened save's Yo-kai
-- Up/Down: move through the selected list
-- SELECT: switch selection between the save and bank lists
-- L/R: change Local Bank pages
+- Up/Down: move through the selected list (hold to keep scrolling)
+- Left/Right: jump backward/forward six entries
+- L: select the Local Bank on the top screen; R: select the save on the bottom screen
+- SELECT: toggle mark mode; A or a touch on a save-list row toggles its mark
 - Y: cycle name, level, and original-order sorting
 - X: confirm and commit the staged game and bank
-- A: open the Mark/Move menu
+- A: open the Mark/Move/Copy menu on the active screen
 - B: discard staged changes; return to the save overview when clean
 
 Depositing an active-party member is rejected. Move it to a reserve slot in-game first so the
 party layout never contains a dangling entry. Detected party/squad members are grayed out in the
-save list.
+save list. Copy is non-destructive and is permitted for party members; copies inserted into a save
+receive a fresh internal identifier so party/index references cannot collide.
+Leaving mark mode with marked entries opens the action menu automatically and selects Move; Move or
+Copy applies to the complete marked batch.
 
 ## Build and tests
 

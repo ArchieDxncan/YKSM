@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cstring>
 #include <limits>
+#include <unordered_map>
 
 namespace yokai
 {
@@ -145,6 +146,32 @@ namespace yokai
         return false;
     }
 
+    std::vector<std::size_t> SaveImage::recordOrder() const
+    {
+        const Layout& info = layout(mGame);
+        const RecordArea area = recordArea();
+        std::unordered_map<std::uint32_t, std::size_t> slotsByNumber;
+        slotsByNumber.reserve(area.slots);
+        for (std::size_t slot = 0; slot < area.slots; slot++)
+        {
+            const std::size_t record = area.offset + slot * info.recordSize;
+            if (read32(mBytes, record + 4) != 0)
+                slotsByNumber.emplace(read32(mBytes, record), slot);
+        }
+
+        std::vector<std::size_t> output;
+        output.reserve(slotsByNumber.size());
+        const std::size_t indexes = indexOffset();
+        for (std::size_t item = 0; item < area.slots; item++)
+        {
+            const std::uint32_t number = read32(mBytes, indexes + item * 4);
+            if (number == 0) continue;
+            if (const auto found = slotsByNumber.find(number); found != slotsByNumber.end())
+                output.push_back(found->second);
+        }
+        return output;
+    }
+
     bool SaveImage::isPartySlot(std::size_t slot) const
     {
         const RecordArea area = recordArea();
@@ -172,23 +199,38 @@ namespace yokai
         const Layout& info = layout(mGame);
         const std::size_t partySize =
             mGame == Game::Blasters || mGame == Game::Busters2 ? 4 : 6;
-        const std::size_t indexes = indexOffset();
+        std::unordered_map<std::uint32_t, std::size_t> slotsByNumber;
+        slotsByNumber.reserve(area.slots);
+        for (std::size_t slot = 0; slot < area.slots; slot++)
+        {
+            const std::size_t record = area.offset + slot * info.recordSize;
+            if (read32(mBytes, record + 4) != 0)
+                slotsByNumber.emplace(read32(mBytes, record), slot);
+        }
         std::vector<std::size_t> output;
         output.reserve(partySize);
+        const std::size_t indexes = indexOffset();
         for (std::size_t member = 0; member < partySize; member++)
         {
-            const std::uint32_t number = read32(mBytes, indexes + member * 4);
-            for (std::size_t slot = 0; slot < area.slots; slot++)
-            {
-                const std::size_t record = area.offset + slot * info.recordSize;
-                if (read32(mBytes, record + 4) != 0 && read32(mBytes, record) == number)
-                {
-                    output.push_back(slot);
-                    break;
-                }
-            }
+            const auto found = slotsByNumber.find(read32(mBytes, indexes + member * 4));
+            if (found != slotsByNumber.end()) output.push_back(found->second);
         }
         return output;
+    }
+
+    bool SaveImage::containsIdentifier(std::span<const std::uint8_t> identifier) const
+    {
+        if (identifier.size() != 4) throw Error("Yo-kai identifier has the wrong size");
+        const Layout& info = layout(mGame);
+        const RecordArea area = recordArea();
+        for (std::size_t slot = 0; slot < area.slots; slot++)
+        {
+            const std::size_t record = area.offset + slot * info.recordSize;
+            if (read32(mBytes, record + 4) != 0 &&
+                std::equal(identifier.begin(), identifier.end(), mBytes.begin() + record))
+                return true;
+        }
+        return false;
     }
 
     std::string SaveImage::playerName() const
@@ -217,6 +259,8 @@ namespace yokai
         const auto wanted = removedNumber.empty()
             ? std::span<const std::uint8_t>(mBytes).subspan(recordOffset, 4)
             : removedNumber;
+        const std::size_t partySize =
+            mGame == Game::Blasters || mGame == Game::Busters2 ? 4 : 6;
         for (std::size_t item = 0; item < area.slots; item++)
         {
             const std::size_t index = indexes + item * 4;
@@ -230,7 +274,10 @@ namespace yokai
                 std::fill_n(mBytes.begin() + indexes + (area.slots - 1) * 4, 4, 0);
                 return;
             }
-            if (removedNumber.empty() && read32(mBytes, index) == 0)
+            // Blank positions inside the leading party/squad area are
+            // reserved. Newly inserted records belong in reserve, never in an
+            // empty active-party position.
+            if (removedNumber.empty() && item >= partySize && read32(mBytes, index) == 0)
             {
                 std::copy_n(wanted.begin(), 4, mBytes.begin() + index);
                 return;

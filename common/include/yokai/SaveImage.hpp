@@ -27,8 +27,10 @@ namespace yokai
         [[nodiscard]] const std::vector<std::uint8_t>& bytes() const { return mBytes; }
         [[nodiscard]] std::vector<Record> records() const;
         [[nodiscard]] bool hasFreeSlot() const;
+        [[nodiscard]] std::vector<std::size_t> recordOrder() const;
         [[nodiscard]] std::vector<std::size_t> partySlots() const;
         [[nodiscard]] bool isPartySlot(std::size_t slot) const;
+        [[nodiscard]] bool containsIdentifier(std::span<const std::uint8_t> identifier) const;
         [[nodiscard]] std::string playerName() const;
         [[nodiscard]] std::optional<std::uint64_t> playTimeSeconds() const;
 
