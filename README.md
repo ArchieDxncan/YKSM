@@ -1,14 +1,13 @@
 # YKSM
-
 YKSM is a native Nintendo 3DS save manager and transfer bank for the Yo-kai Watch series.
-It uses a single-column list interface designed for the 3DS screens; it does not use a box grid.
+<img width="512" height="265" alt="banner" src="https://github.com/user-attachments/assets/68889704-20a7-4e2c-9191-1e296f3709f7" />
 
 ## Supported games
 
 - Yo-kai Watch
-- Yo-kai Watch 2: Bony Spirits, Fleshy Souls, and Psychic Specters
+- Yo-kai Watch 2
 - Yo-kai Watch 3
-- Yo-kai Watch Blasters, including Moon Rabbit Crew save files
+- Yo-kai Watch Blasters
 - Yo-kai Watch Busters 2
 
 YKSM detects installed SD titles and game cards automatically. It can also load original encrypted
@@ -19,10 +18,6 @@ Blasters' `game1.yw_g`. Authenticated saves must be kept beside their matching `
 The local transfer bank is `/3ds/YKSM/bank.ykb`. Before an installed save is changed, a backup is
 written under `/3ds/YKSM/backups`.
 
-YKSM's active interface does not initialize PKSM's inherited Pokemon translation databases. This
-prevents confirmation dialogs from trying to load removed files such as `items3.txt`.
-
-`.ykbank` migration is intentionally not supported.
 
 ## Controls
 
@@ -66,53 +61,6 @@ selected by default. Move and Copy then apply to the marked batch.
 
 For a Homebrew Launcher installation, copy `YKSM.3dsx` to `/3ds/YKSM/YKSM.3dsx` on the SD card.
 For a HOME Menu installation, install `YKSM.cia` with a trusted CIA installer.
-
-Always retain the automatic backup until the edited save has been opened successfully in-game.
-
-## GitHub Actions build
-
-The included `.github/workflows/build.yml` runs the portable core tests and builds the Nintendo 3DS
-artifacts in devkitPro's `devkitarm` container. It marks the container workspace as a trusted Git
-directory, installs the required 3DS libraries, builds pinned versions of `bannertool`, `makerom`,
-and `3dstool`, and uploads:
-
-- `YKSM.3dsx`
-- `YKSM.cia`
-- `YKSM.elf`
-
-Use **Actions → Build YKSM → Run workflow**. The files appear in the `YKSM-3DS` artifact after a
-successful run. No repository secrets are required.
-
-## Local tests
-
-```sh
-make -C tests build/YokaiCoreTests
-./tests/build/YokaiCoreTests
-```
-
-Encrypted backups can be checked without committing personal saves:
-
-```sh
-make -C tests build/YokaiFixtureTests
-./tests/build/YokaiFixtureTests /path/to/extracted/saves
-```
-
-## Nintendo 3DS performance
-
-The selected save is discovered, read, decrypted, and parsed once, then shared by the overview and
-transfer screens. Marked deposits use the already parsed records instead of rescanning every save
-slot for every transfer. Withdrawals reuse one destination template per batch, and the lists are
-rebuilt only after the batch completes. This is especially important for the larger YW3 and action
-game saves on the 3DS CPU.
-
-## Building locally
-
-Install devkitARM, libctru, citro2d, citro3d, 3ds-curl, 3ds-bzip2, 3ds-mpg123,
-3ds-pkg-config, 3dstools, tex3ds, bannertool, makerom, and 3dstool. Then run:
-
-```sh
-make debug -j2
-```
 
 ## Project lineage and licensing
 
